@@ -124,7 +124,7 @@ void gb_interpret()
 		break;
 	case 0x36: mem_write8(HL, mem_read8(PC++)); break;
 	case 0x37: F &= ~(FLAG_N|FLAG_H); F |= FLAG_C; break; // SCF
-	case 0x38: temp = mem_read8(PC++); if( F & FLAG_C ) PC += (s8)temp; break;
+	case 0x38: temp = mem_read8(PC++); if( F & FLAG_C ) PC += (s16)(s8)temp; break;
 	case 0x39: add_hl(SP); break;
 	case 0x3A: A = mem_read8(HL--); break;
 	case 0x3B: SP--; break;
@@ -228,14 +228,14 @@ void gb_interpret()
 	case 0x9D: sbc(L); break;
 	case 0x9E: sbc(mem_read8(HL)); break;
 	case 0x9F: sbc(A); break;
-	case 0xA0: F = 0; F |= FLAG_H; A &= B; if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA1: F = 0; F |= FLAG_H; A &= C; if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA2: F = 0; F |= FLAG_H; A &= D; if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA3: F = 0; F |= FLAG_H; A &= E; if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA4: F = 0; F |= FLAG_H; A &= H; if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA5: F = 0; F |= FLAG_H; A &= L; if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA6: F = 0; F |= FLAG_H; A &= mem_read8(HL); if( A == 0 ) F |= FLAG_Z; break;
-	case 0xA7: F = 0; F |= FLAG_H; A &= A; if( A == 0 ) F |= FLAG_Z; break;	
+	case 0xA0: F = FLAG_H; A &= B; if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA1: F = FLAG_H; A &= C; if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA2: F = FLAG_H; A &= D; if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA3: F = FLAG_H; A &= E; if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA4: F = FLAG_H; A &= H; if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA5: F = FLAG_H; A &= L; if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA6: F = FLAG_H; A &= mem_read8(HL); if( A == 0 ) F |= FLAG_Z; break;
+	case 0xA7: F = FLAG_H; A &= A; if( A == 0 ) F |= FLAG_Z; break;	
 	case 0xA8: F = 0; A ^= B; if( A == 0 ) F |= FLAG_Z; break;
 	case 0xA9: F = 0; A ^= C; if( A == 0 ) F |= FLAG_Z; break;
 	case 0xAA: F = 0; A ^= D; if( A == 0 ) F |= FLAG_Z; break;
@@ -299,7 +299,7 @@ void gb_interpret()
 	case 0xE1: HL = pop16(); break;
 	case 0xE2: mem_write8(0xFF00 + C, A); break;
 	case 0xE5: push16(HL); break;
-	case 0xE6: F = 0; F |= FLAG_H; A &= mem_read8(PC++); if( A == 0 ) F |= FLAG_Z; break;
+	case 0xE6: F = FLAG_H; A &= mem_read8(PC++); if( A == 0 ) F |= FLAG_Z; break;
 	case 0xE7: push16(PC); PC = 0x20; break;
 	case 0xE8: // ADD SP, n
 		F=0; temp = mem_read8(PC++); 
@@ -396,73 +396,74 @@ void cb_prefix(u8 op)
 	}
 
 	int cf = (F>>4)&1;
+	F = 0;
 	
 	switch( op )
 	{
-	case 0x00: F = 0; if( B >> 7 ) F |= FLAG_C; B = (B<<1)|(B>>7); if( B == 0 ) F |= FLAG_Z; break;
-	case 0x01: F = 0; if( C >> 7 ) F |= FLAG_C; C = (C<<1)|(C>>7); if( C == 0 ) F |= FLAG_Z; break;
-	case 0x02: F = 0; if( D >> 7 ) F |= FLAG_C; D = (D<<1)|(D>>7); if( D == 0 ) F |= FLAG_Z; break;
-	case 0x03: F = 0; if( E >> 7 ) F |= FLAG_C; E = (E<<1)|(E>>7); if( E == 0 ) F |= FLAG_Z; break;
-	case 0x04: F = 0; if( H >> 7 ) F |= FLAG_C; H = (H<<1)|(H>>7); if( H == 0 ) F |= FLAG_Z; break;
-	case 0x05: F = 0; if( L >> 7 ) F |= FLAG_C; L = (L<<1)|(L>>7); if( L == 0 ) F |= FLAG_Z; break;
-	case 0x06: F = 0; temp = mem_read8(HL); if( temp >> 7 ) F |= FLAG_C; temp = (temp<<1)|(temp>>7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
-	case 0x07: F = 0; if( A >> 7 ) F |= FLAG_C; A = (A<<1)|(A>>7); if( A == 0 ) F |= FLAG_Z; break;
-	case 0x08: F = 0; if( B & 1 ) F |= FLAG_C; B = (B>>1)|(B<<7); if( B == 0 ) F |= FLAG_Z; break;
-	case 0x09: F = 0; if( C & 1 ) F |= FLAG_C; C = (C>>1)|(C<<7); if( C == 0 ) F |= FLAG_Z; break;
-	case 0x0A: F = 0; if( D & 1 ) F |= FLAG_C; D = (D>>1)|(D<<7); if( D == 0 ) F |= FLAG_Z; break;
-	case 0x0B: F = 0; if( E & 1 ) F |= FLAG_C; E = (E>>1)|(E<<7); if( E == 0 ) F |= FLAG_Z; break;
-	case 0x0C: F = 0; if( H & 1 ) F |= FLAG_C; H = (H>>1)|(H<<7); if( H == 0 ) F |= FLAG_Z; break;
-	case 0x0D: F = 0; if( L & 1 ) F |= FLAG_C; L = (L>>1)|(L<<7); if( L == 0 ) F |= FLAG_Z; break;
-	case 0x0E: F = 0; temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (temp>>1)|(temp<<7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
-	case 0x0F: F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(A<<7); if( A == 0 ) F |= FLAG_Z; break;
-	case 0x10: F = 0; if( B >> 7 ) F |= FLAG_C; B = (B<<1)|cf; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x11: F = 0; if( C >> 7 ) F |= FLAG_C; C = (C<<1)|cf; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x12: F = 0; if( D >> 7 ) F |= FLAG_C; D = (D<<1)|cf; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x13: F = 0; if( E >> 7 ) F |= FLAG_C; E = (B<<1)|cf; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x14: F = 0; if( H >> 7 ) F |= FLAG_C; H = (H<<1)|cf; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x15: F = 0; if( L >> 7 ) F |= FLAG_C; L = (L<<1)|cf; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x16: F = 0; temp = mem_read8(HL); if( temp >> 7 ) F |= FLAG_C; temp = (temp<<1)|cf; mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
-	case 0x17: F = 0; if( A >> 7 ) F |= FLAG_C; A = (A<<1)|cf; if( A == 0 ) F |= FLAG_Z; break;
-	case 0x18: F = 0; if( B & 1 ) F |= FLAG_C; B = (B>>1)|(cf<<7); if( B == 0 ) F |= FLAG_Z; break;
-	case 0x19: F = 0; if( C & 1 ) F |= FLAG_C; C = (C>>1)|(cf<<7); if( C == 0 ) F |= FLAG_Z; break;
-	case 0x1A: F = 0; if( D & 1 ) F |= FLAG_C; D = (D>>1)|(cf<<7); if( D == 0 ) F |= FLAG_Z; break;
-	case 0x1B: F = 0; if( E & 1 ) F |= FLAG_C; E = (E>>1)|(cf<<7); if( E == 0 ) F |= FLAG_Z; break;
-	case 0x1C: F = 0; if( H & 1 ) F |= FLAG_C; H = (H>>1)|(cf<<7); if( H == 0 ) F |= FLAG_Z; break;
-	case 0x1D: F = 0; if( L & 1 ) F |= FLAG_C; L = (L>>1)|(cf<<7); if( L == 0 ) F |= FLAG_Z; break;
-	case 0x1E: F = 0; temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (temp>>1)|(cf<<7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
-	case 0x1F: F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(cf<<7); if( A == 0 ) F |= FLAG_Z; break;
-	case 0x20: F = 0; if( B>>7 ) F |= FLAG_C; B <<= 1; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x21: F = 0; if( C>>7 ) F |= FLAG_C; C <<= 1; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x22: F = 0; if( D>>7 ) F |= FLAG_C; D <<= 1; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x23: F = 0; if( E>>7 ) F |= FLAG_C; E <<= 1; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x24: F = 0; if( H>>7 ) F |= FLAG_C; H <<= 1; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x25: F = 0; if( L>>7 ) F |= FLAG_C; L <<= 1; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x26: F = 0; temp = mem_read8(HL); if( temp>>7 ) F |= FLAG_C; temp <<= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
-	case 0x27: F = 0; if( A>>7 ) F |= FLAG_C; A <<= 1; if( A == 0 ) F |= FLAG_Z; break;
-	case 0x28: F = 0; if( B&1 ) F |= FLAG_C; B = (s8)B>>1; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x29: F = 0; if( C&1 ) F |= FLAG_C; C = (s8)C>>1; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x2A: F = 0; if( D&1 ) F |= FLAG_C; D = (s8)D>>1; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x2B: F = 0; if( E&1 ) F |= FLAG_C; E = (s8)E>>1; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x2C: F = 0; if( H&1 ) F |= FLAG_C; H = (s8)H>>1; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x2D: F = 0; if( L&1 ) F |= FLAG_C; L = (s8)L>>1; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x2E: F = 0; temp = mem_read8(HL); if( temp&1 ) F |= FLAG_C; temp = (s8)temp>>1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
-	case 0x2F: F = 0; if( A&1 ) F |= FLAG_C; A = (s8)A>>1; if( A == 0 ) F |= FLAG_Z; break;
-	case 0x30: F = 0; B = (B<<4)|(B>>4);
-	case 0x31: F = 0; C = (C<<4)|(C>>4);
-	case 0x32: F = 0; D = (D<<4)|(D>>4);
-	case 0x33: F = 0; E = (E<<4)|(E>>4);
-	case 0x34: F = 0; H = (H<<4)|(H>>4);
-	case 0x35: F = 0; L = (L<<4)|(L>>4);
-	case 0x36: F = 0; temp = mem_read8(HL); mem_write8(HL, (temp<<4)|(temp>>4));
-	case 0x37: F = 0; A = (A<<4)|(A>>4);
-	case 0x38: F = 0; if( B&1 ) F |= FLAG_C; B >>= 1; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x39: F = 0; if( C&1 ) F |= FLAG_C; C >>= 1; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x3A: F = 0; if( D&1 ) F |= FLAG_C; D >>= 1; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x3B: F = 0; if( E&1 ) F |= FLAG_C; E >>= 1; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x3C: F = 0; if( H&1 ) F |= FLAG_C; H >>= 1; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x3D: F = 0; if( L&1 ) F |= FLAG_C; L >>= 1; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x3E: F = 0; temp = mem_read8(HL); if( temp&1 ) F |= FLAG_C; temp >>= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
-	case 0x3F: F = 0; if( A&1 ) F |= FLAG_C; A >>= 1; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x00: if( B >> 7 ) F |= FLAG_C; B = (B<<1)|(B>>7); if( B == 0 ) F |= FLAG_Z; break;
+	case 0x01: if( C >> 7 ) F |= FLAG_C; C = (C<<1)|(C>>7); if( C == 0 ) F |= FLAG_Z; break;
+	case 0x02: if( D >> 7 ) F |= FLAG_C; D = (D<<1)|(D>>7); if( D == 0 ) F |= FLAG_Z; break;
+	case 0x03: if( E >> 7 ) F |= FLAG_C; E = (E<<1)|(E>>7); if( E == 0 ) F |= FLAG_Z; break;
+	case 0x04: if( H >> 7 ) F |= FLAG_C; H = (H<<1)|(H>>7); if( H == 0 ) F |= FLAG_Z; break;
+	case 0x05: if( L >> 7 ) F |= FLAG_C; L = (L<<1)|(L>>7); if( L == 0 ) F |= FLAG_Z; break;
+	case 0x06: temp = mem_read8(HL); if( temp >> 7 ) F |= FLAG_C; temp = (temp<<1)|(temp>>7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x07: if( A >> 7 ) F |= FLAG_C; A = (A<<1)|(A>>7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x08: if( B & 1 ) F |= FLAG_C; B = (B>>1)|(B<<7); if( B == 0 ) F |= FLAG_Z; break;
+	case 0x09: if( C & 1 ) F |= FLAG_C; C = (C>>1)|(C<<7); if( C == 0 ) F |= FLAG_Z; break;
+	case 0x0A: if( D & 1 ) F |= FLAG_C; D = (D>>1)|(D<<7); if( D == 0 ) F |= FLAG_Z; break;
+	case 0x0B: if( E & 1 ) F |= FLAG_C; E = (E>>1)|(E<<7); if( E == 0 ) F |= FLAG_Z; break;
+	case 0x0C: if( H & 1 ) F |= FLAG_C; H = (H>>1)|(H<<7); if( H == 0 ) F |= FLAG_Z; break;
+	case 0x0D: if( L & 1 ) F |= FLAG_C; L = (L>>1)|(L<<7); if( L == 0 ) F |= FLAG_Z; break;
+	case 0x0E: temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (temp>>1)|(temp<<7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x0F: if( A & 1 ) F |= FLAG_C; A = (A>>1)|(A<<7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x10: if( B >> 7 ) F |= FLAG_C; B = (B<<1)|cf; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x11: if( C >> 7 ) F |= FLAG_C; C = (C<<1)|cf; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x12: if( D >> 7 ) F |= FLAG_C; D = (D<<1)|cf; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x13: if( E >> 7 ) F |= FLAG_C; E = (B<<1)|cf; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x14: if( H >> 7 ) F |= FLAG_C; H = (H<<1)|cf; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x15: if( L >> 7 ) F |= FLAG_C; L = (L<<1)|cf; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x16: temp = mem_read8(HL); if( temp >> 7 ) F |= FLAG_C; temp = (temp<<1)|cf; mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x17: if( A >> 7 ) F |= FLAG_C; A = (A<<1)|cf; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x18: if( B & 1 ) F |= FLAG_C; B = (B>>1)|(cf<<7); if( B == 0 ) F |= FLAG_Z; break;
+	case 0x19: if( C & 1 ) F |= FLAG_C; C = (C>>1)|(cf<<7); if( C == 0 ) F |= FLAG_Z; break;
+	case 0x1A: if( D & 1 ) F |= FLAG_C; D = (D>>1)|(cf<<7); if( D == 0 ) F |= FLAG_Z; break;
+	case 0x1B: if( E & 1 ) F |= FLAG_C; E = (E>>1)|(cf<<7); if( E == 0 ) F |= FLAG_Z; break;
+	case 0x1C: if( H & 1 ) F |= FLAG_C; H = (H>>1)|(cf<<7); if( H == 0 ) F |= FLAG_Z; break;
+	case 0x1D: if( L & 1 ) F |= FLAG_C; L = (L>>1)|(cf<<7); if( L == 0 ) F |= FLAG_Z; break;
+	case 0x1E: temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (temp>>1)|(cf<<7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x1F: if( A & 1 ) F |= FLAG_C; A = (A>>1)|(cf<<7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x20: if( B>>7 ) F |= FLAG_C; B <<= 1; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x21: if( C>>7 ) F |= FLAG_C; C <<= 1; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x22: if( D>>7 ) F |= FLAG_C; D <<= 1; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x23: if( E>>7 ) F |= FLAG_C; E <<= 1; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x24: if( H>>7 ) F |= FLAG_C; H <<= 1; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x25: if( L>>7 ) F |= FLAG_C; L <<= 1; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x26: temp = mem_read8(HL); if( temp>>7 ) F |= FLAG_C; temp <<= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
+	case 0x27: if( A>>7 ) F |= FLAG_C; A <<= 1; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x28: if( B&1 ) F |= FLAG_C; B = (s8)B>>1; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x29: if( C&1 ) F |= FLAG_C; C = (s8)C>>1; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x2A: if( D&1 ) F |= FLAG_C; D = (s8)D>>1; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x2B: if( E&1 ) F |= FLAG_C; E = (s8)E>>1; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x2C: if( H&1 ) F |= FLAG_C; H = (s8)H>>1; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x2D: if( L&1 ) F |= FLAG_C; L = (s8)L>>1; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x2E: temp = mem_read8(HL); if( temp&1 ) F |= FLAG_C; temp = (s8)temp>>1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
+	case 0x2F: if( A&1 ) F |= FLAG_C; A = (s8)A>>1; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x30: B = (B<<4)|(B>>4); if( B == 0 ) F |= FLAG_Z; break;
+	case 0x31: C = (C<<4)|(C>>4); if( C == 0 ) F |= FLAG_Z; break;
+	case 0x32: D = (D<<4)|(D>>4); if( D == 0 ) F |= FLAG_Z; break;
+	case 0x33: E = (E<<4)|(E>>4); if( E == 0 ) F |= FLAG_Z; break;
+	case 0x34: H = (H<<4)|(H>>4); if( H == 0 ) F |= FLAG_Z; break;
+	case 0x35: L = (L<<4)|(L>>4); if( L == 0 ) F |= FLAG_Z; break;
+	case 0x36: temp = mem_read8(HL); mem_write8(HL, (temp<<4)|(temp>>4)); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x37: A = (A<<4)|(A>>4); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x38: if( B&1 ) F |= FLAG_C; B >>= 1; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x39: if( C&1 ) F |= FLAG_C; C >>= 1; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x3A: if( D&1 ) F |= FLAG_C; D >>= 1; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x3B: if( E&1 ) F |= FLAG_C; E >>= 1; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x3C: if( H&1 ) F |= FLAG_C; H >>= 1; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x3D: if( L&1 ) F |= FLAG_C; L >>= 1; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x3E: temp = mem_read8(HL); if( temp&1 ) F |= FLAG_C; temp >>= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
+	case 0x3F: if( A&1 ) F |= FLAG_C; A >>= 1; if( A == 0 ) F |= FLAG_Z; break;
 	}
 
 	return;
@@ -493,8 +494,8 @@ u16 pop16()
 
 void adc(u8 p)
 {
-	F = 0;
 	int cf = (F & FLAG_C) ? 1 : 0;
+	F = 0;
 	if( (u16)A + (u16)B + cf > 0xff )  F |= FLAG_C; 
 	if( (A&0xf) + (B&0xf) + cf > 0xf ) F |= FLAG_H; 
 	A += p + cf;
@@ -585,7 +586,6 @@ extern bool emubios;
 void gb_reset()
 {
 	AF = 0x01B0;
-	//printf("A = %x\n", A);
 	BC = 0x0013;
 	DE = 0x00D8;
 	HL = 0x014D;

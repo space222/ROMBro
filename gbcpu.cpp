@@ -2,6 +2,11 @@
 #include <cstdlib>
 #include "types.h"
 
+// blargg cpu tests that pass: monolithic (probable false positive), 01, 03, 04, 05, 06, 08, 09, 10, 11
+// blargg cpu tests that fail (and why if known): 
+// 	02 - interrupts not implemented, test should fail
+//	07 - interrupts not implemented, RETI should fail 
+
 reg cpu[5];
 u16 PC = 0;
 
@@ -27,8 +32,8 @@ u16 PC = 0;
 void mem_write8(u16, u8);
 void mem_write16(u16 addr, u16 val)
 {
-	mem_write8(addr, val>>8);
-	mem_write8(addr+1, val&0xFF);
+	mem_write8(addr, val&0xFF);
+	mem_write8(addr+1, val>>8);
 	return;
 }
 u8 mem_read8(u16);
@@ -59,39 +64,39 @@ void gb_interpret()
 	case 0x02: mem_write8(BC, A); break;
 	case 0x03: BC++; break;
 	case 0x04: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (B & 0xF) == 0xF ) F |= FLAG_H; B++; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x05: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( B & 0xF ) F |= FLAG_H; B--; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x05: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(B & 0xF) ) F |= FLAG_H; B--; if( B == 0 ) F |= FLAG_Z; break;
 	case 0x06: B = mem_read8(PC++); break; // LD B, n
-	case 0x07: F = 0; if( A >> 7 ) F |= FLAG_C; A = (A<<1)|(A>>7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x07: F = 0; if( A & 0x80 ) F |= FLAG_C; A = (A<<1)|(A>>7); break;
 	case 0x08: mem_write16(imm16(), SP); break;
 	case 0x09: add_hl(BC); break;
 	case 0x0A: A = mem_read8(BC);   break; // LD A, (BC)
 	case 0x0B: BC--; break;
 	case 0x0C: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (C & 0xF) == 0xF ) F |= FLAG_H; C++; if( C == 0 ) F |= FLAG_Z; break;	
-	case 0x0D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( C & 0xF ) F |= FLAG_H; C--; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x0D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(C & 0xF) ) F |= FLAG_H; C--; if( C == 0 ) F |= FLAG_Z; break;
 	case 0x0E: C = mem_read8(PC++); break; // LD C, n
-	case 0x0F: F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(A<<7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x0F: F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(A<<7); break;
 	case 0x10: break; //TODO: stop
 	case 0x11: DE = imm16(); break;
 	case 0x12: mem_write8(DE, A); break;
 	case 0x13: DE++; break;
 	case 0x14: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (D & 0xF) == 0xF ) F |= FLAG_H; D++; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x15: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( D & 0xF ) F |= FLAG_H; D--; if( D == 0 ) F |= FLAG_Z; break;	
+	case 0x15: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(D & 0xF) ) F |= FLAG_H; D--; if( D == 0 ) F |= FLAG_Z; break;	
 	case 0x16: D = mem_read8(PC++); break; // LD D, n
-	case 0x17: temp = (F>>4)&1; F = 0; if( A >> 7 ) F |= FLAG_C; A = (A<<1)|temp; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x17: temp = (F>>4)&1; F = 0; if( A & 0x80 ) F |= FLAG_C; A = (A<<1)|temp; break;
 	case 0x18: temp = mem_read8(PC++); PC += (s8)temp; break;
 	case 0x19: add_hl(DE); break;
 	case 0x1A: A = mem_read8(DE);   break; // LD A, (DE)
 	case 0x1B: DE--; break;
 	case 0x1C: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (E & 0xF) == 0xF ) F |= FLAG_H; E++; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x1D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( E & 0xF ) F |= FLAG_H; E--; if( E == 0 ) F |= FLAG_Z; break;	
+	case 0x1D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(E & 0xF) ) F |= FLAG_H; E--; if( E == 0 ) F |= FLAG_Z; break;	
 	case 0x1E: E = mem_read8(PC++); break; // LD E, n
-	case 0x1F: temp = (F>>4)&1; F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(temp<<7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x1F: temp = (F>>4)&1; F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(temp<<7); break;
 	case 0x20: temp = mem_read8(PC++); if( !(F & FLAG_Z) ) PC += (s8)temp; break;
 	case 0x21: HL = imm16(); break;
 	case 0x22: mem_write8(HL++, A); break;
 	case 0x23: HL++; break;
 	case 0x24: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (H & 0xF) == 0xF ) F |= FLAG_H; H++; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x25: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( H & 0xF ) F |= FLAG_H; H--; if( H == 0 ) F |= FLAG_Z; break;	
+	case 0x25: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(H & 0xF) ) F |= FLAG_H; H--; if( H == 0 ) F |= FLAG_Z; break;	
 	case 0x26: H = mem_read8(PC++); break; // LD H, n
 	case 0x27: daa(); break;
 	case 0x28: temp = mem_read8(PC++); if( F & FLAG_Z ) PC += (s8)temp; break;	
@@ -99,7 +104,7 @@ void gb_interpret()
 	case 0x2A: A = mem_read8(HL++); break;
 	case 0x2B: HL--; break;
 	case 0x2C: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (L & 0xF) == 0xF ) F |= FLAG_H; L++; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x2D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( L & 0xF ) F |= FLAG_H; L--; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x2D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(L & 0xF) ) F |= FLAG_H; L--; if( L == 0 ) F |= FLAG_Z; break;
 	case 0x2E: L = mem_read8(PC++); break; // LD L, n
 	case 0x2F: A = ~A; F |= (FLAG_N|FLAG_H); break;
 	case 0x30: temp = mem_read8(PC++); if( !(F & FLAG_C) ) PC += (s8)temp; break;	
@@ -112,12 +117,13 @@ void gb_interpret()
 		if( (temp & 0xF) == 0xF ) F |= FLAG_H; 
 		temp++; 
 		if( temp == 0 ) F |= FLAG_Z;
+		mem_write8(HL, temp);
 		break;
 	case 0x35:
 		temp = mem_read8(HL); 
 		F |= FLAG_N; 
 		F &= ~(FLAG_Z|FLAG_H);
-		if( temp & 0xF ) F |= FLAG_H; 
+		if( !(temp & 0xF) ) F |= FLAG_H; 
 		temp--; 
 		if( temp == 0 ) F |= FLAG_Z;
 		mem_write8(HL, temp);
@@ -129,7 +135,7 @@ void gb_interpret()
 	case 0x3A: A = mem_read8(HL--); break;
 	case 0x3B: SP--; break;
 	case 0x3C: F &= ~(FLAG_Z|FLAG_N|FLAG_H); if( (A & 0xF) == 0xF ) F |= FLAG_H; A++; if( A == 0 ) F |= FLAG_Z; break;
-	case 0x3D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( A & 0xF ) F |= FLAG_H; A--; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x3D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(A & 0xF) ) F |= FLAG_H; A--; if( A == 0 ) F |= FLAG_Z; break;
 	case 0x3E: A = mem_read8(PC++); break;
 	case 0x3F: F &= ~(FLAG_N|FLAG_H); F ^= FLAG_C; break; // CCF
 	case 0x40: B = B; break;
@@ -271,7 +277,7 @@ void gb_interpret()
 	case 0xC8: if( F & FLAG_Z ) PC = pop16(); break;
 	case 0xC9: PC = pop16(); break;
 	case 0xCA: if( F & FLAG_Z ) PC = imm16(); else PC += 2; break;
-	case 0xCB: PC++; cb_prefix(mem_read8(PC)); break;
+	case 0xCB: cb_prefix(mem_read8(PC++)); break;
 	case 0xCC: if( F & FLAG_Z ) { push16(PC+2); PC = imm16(); } else PC += 2; break;
 	case 0xCD: push16(PC+2); PC = imm16(); break;
 	case 0xCE: adc(mem_read8(PC++)); break;
@@ -304,8 +310,8 @@ void gb_interpret()
 	case 0xE8: // ADD SP, n
 		F=0; temp = mem_read8(PC++); 
 		if( (SP&0xff) + temp > 0xff )   F |= FLAG_C; 
-		if( (SP&0xf)+(temp&0xf) > 0xf ) F |= FLAG_H; 
-		SP += (s8)temp;
+		if( (u16)((SP&0xf)+(temp&0xf)) > 0xf ) F |= FLAG_H; 
+		SP += (s16)(s8)temp;
 		break;
 	case 0xE9: PC = HL; break;
 	case 0xEA: mem_write8(imm16(), A); break;
@@ -322,9 +328,9 @@ void gb_interpret()
 	case 0xF7: push16(PC); PC = 0x30; break;
 	case 0xF8: // LD HL, SP+n
 		F=0; temp = mem_read8(PC++); 
-		if( (SP&0xff) + temp > 0xff )   F |= FLAG_C; 
-		if( (SP&0xf)+(temp&0xf) > 0xf ) F |= FLAG_H; 
-		HL = SP + (s8)temp;
+		if( (u16)((SP&0xff) + temp) > 0xff )   F |= FLAG_C; 
+		if( (u16)((SP&0xf)+(temp&0xf)) > 0xf ) F |= FLAG_H; 
+		HL = SP + (s16)(s8)temp;
 		break;
 	case 0xF9: SP = HL; break;
 	case 0xFA: A = mem_read8(imm16()); break;
@@ -344,7 +350,7 @@ void cb_prefix(u8 op)
 	
 	if( op > 0xBF )
 	{ // SET n, r
-		int bit = 1 << (op >> 3);
+		int bit = 1 << ((op >> 3)&7);
 		switch( op & 7 )
 		{
 		case 0: B |= bit; break;
@@ -361,7 +367,7 @@ void cb_prefix(u8 op)
 	
 	if( op > 0x7F )
 	{ // RES n, r
-		int bit = ~(1 << (op >> 3));
+		int bit = ~(1 << ((op >> 3)&7));
 		switch( op & 7 )
 		{
 		case 0: B &= bit; break;
@@ -379,7 +385,7 @@ void cb_prefix(u8 op)
 	if( op > 0x3F )
 	{ // BIT n, r
 		F &= ~(FLAG_Z|FLAG_N); F |= FLAG_H;
-		int bit = 1 << (op >> 3);
+		int bit = 1 << ((op >> 3)&7);
 		switch( op & 7 )
 		{
 		case 0: bit &= B; break;
@@ -400,14 +406,14 @@ void cb_prefix(u8 op)
 	
 	switch( op )
 	{
-	case 0x00: if( B >> 7 ) F |= FLAG_C; B = (B<<1)|(B>>7); if( B == 0 ) F |= FLAG_Z; break;
-	case 0x01: if( C >> 7 ) F |= FLAG_C; C = (C<<1)|(C>>7); if( C == 0 ) F |= FLAG_Z; break;
-	case 0x02: if( D >> 7 ) F |= FLAG_C; D = (D<<1)|(D>>7); if( D == 0 ) F |= FLAG_Z; break;
-	case 0x03: if( E >> 7 ) F |= FLAG_C; E = (E<<1)|(E>>7); if( E == 0 ) F |= FLAG_Z; break;
-	case 0x04: if( H >> 7 ) F |= FLAG_C; H = (H<<1)|(H>>7); if( H == 0 ) F |= FLAG_Z; break;
-	case 0x05: if( L >> 7 ) F |= FLAG_C; L = (L<<1)|(L>>7); if( L == 0 ) F |= FLAG_Z; break;
-	case 0x06: temp = mem_read8(HL); if( temp >> 7 ) F |= FLAG_C; temp = (temp<<1)|(temp>>7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
-	case 0x07: if( A >> 7 ) F |= FLAG_C; A = (A<<1)|(A>>7); if( A == 0 ) F |= FLAG_Z; break;
+	case 0x00: if( B & 0x80 ) F |= FLAG_C; B = (B<<1)|(B>>7); if( B == 0 ) F |= FLAG_Z; break;
+	case 0x01: if( C & 0x80 ) F |= FLAG_C; C = (C<<1)|(C>>7); if( C == 0 ) F |= FLAG_Z; break;
+	case 0x02: if( D & 0x80 ) F |= FLAG_C; D = (D<<1)|(D>>7); if( D == 0 ) F |= FLAG_Z; break;
+	case 0x03: if( E & 0x80 ) F |= FLAG_C; E = (E<<1)|(E>>7); if( E == 0 ) F |= FLAG_Z; break;
+	case 0x04: if( H & 0x80 ) F |= FLAG_C; H = (H<<1)|(H>>7); if( H == 0 ) F |= FLAG_Z; break;
+	case 0x05: if( L & 0x80 ) F |= FLAG_C; L = (L<<1)|(L>>7); if( L == 0 ) F |= FLAG_Z; break;
+	case 0x06: temp = mem_read8(HL); if( temp & 0x80 ) F |= FLAG_C; temp = (temp<<1)|(temp>>7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x07: if( A & 0x80 ) F |= FLAG_C; A = (A<<1)|(A>>7); if( A == 0 ) F |= FLAG_Z; break;
 	case 0x08: if( B & 1 ) F |= FLAG_C; B = (B>>1)|(B<<7); if( B == 0 ) F |= FLAG_Z; break;
 	case 0x09: if( C & 1 ) F |= FLAG_C; C = (C>>1)|(C<<7); if( C == 0 ) F |= FLAG_Z; break;
 	case 0x0A: if( D & 1 ) F |= FLAG_C; D = (D>>1)|(D<<7); if( D == 0 ) F |= FLAG_Z; break;
@@ -416,14 +422,14 @@ void cb_prefix(u8 op)
 	case 0x0D: if( L & 1 ) F |= FLAG_C; L = (L>>1)|(L<<7); if( L == 0 ) F |= FLAG_Z; break;
 	case 0x0E: temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (temp>>1)|(temp<<7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
 	case 0x0F: if( A & 1 ) F |= FLAG_C; A = (A>>1)|(A<<7); if( A == 0 ) F |= FLAG_Z; break;
-	case 0x10: if( B >> 7 ) F |= FLAG_C; B = (B<<1)|cf; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x11: if( C >> 7 ) F |= FLAG_C; C = (C<<1)|cf; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x12: if( D >> 7 ) F |= FLAG_C; D = (D<<1)|cf; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x13: if( E >> 7 ) F |= FLAG_C; E = (B<<1)|cf; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x14: if( H >> 7 ) F |= FLAG_C; H = (H<<1)|cf; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x15: if( L >> 7 ) F |= FLAG_C; L = (L<<1)|cf; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x16: temp = mem_read8(HL); if( temp >> 7 ) F |= FLAG_C; temp = (temp<<1)|cf; mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
-	case 0x17: if( A >> 7 ) F |= FLAG_C; A = (A<<1)|cf; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x10: if( B & 0x80 ) F |= FLAG_C; B = (B<<1)|cf; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x11: if( C & 0x80 ) F |= FLAG_C; C = (C<<1)|cf; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x12: if( D & 0x80 ) F |= FLAG_C; D = (D<<1)|cf; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x13: if( E & 0x80 ) F |= FLAG_C; E = (E<<1)|cf; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x14: if( H & 0x80 ) F |= FLAG_C; H = (H<<1)|cf; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x15: if( L & 0x80 ) F |= FLAG_C; L = (L<<1)|cf; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x16: temp = mem_read8(HL); if( temp & 0x80 ) F |= FLAG_C; temp = (temp<<1)|cf; mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
+	case 0x17: if( A & 0x80 ) F |= FLAG_C; A = (A<<1)|cf; if( A == 0 ) F |= FLAG_Z; break;
 	case 0x18: if( B & 1 ) F |= FLAG_C; B = (B>>1)|(cf<<7); if( B == 0 ) F |= FLAG_Z; break;
 	case 0x19: if( C & 1 ) F |= FLAG_C; C = (C>>1)|(cf<<7); if( C == 0 ) F |= FLAG_Z; break;
 	case 0x1A: if( D & 1 ) F |= FLAG_C; D = (D>>1)|(cf<<7); if( D == 0 ) F |= FLAG_Z; break;
@@ -432,22 +438,22 @@ void cb_prefix(u8 op)
 	case 0x1D: if( L & 1 ) F |= FLAG_C; L = (L>>1)|(cf<<7); if( L == 0 ) F |= FLAG_Z; break;
 	case 0x1E: temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (temp>>1)|(cf<<7); mem_write8(HL, temp); if( temp == 0 ) F |= FLAG_Z; break;
 	case 0x1F: if( A & 1 ) F |= FLAG_C; A = (A>>1)|(cf<<7); if( A == 0 ) F |= FLAG_Z; break;
-	case 0x20: if( B>>7 ) F |= FLAG_C; B <<= 1; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x21: if( C>>7 ) F |= FLAG_C; C <<= 1; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x22: if( D>>7 ) F |= FLAG_C; D <<= 1; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x23: if( E>>7 ) F |= FLAG_C; E <<= 1; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x24: if( H>>7 ) F |= FLAG_C; H <<= 1; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x25: if( L>>7 ) F |= FLAG_C; L <<= 1; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x26: temp = mem_read8(HL); if( temp>>7 ) F |= FLAG_C; temp <<= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
-	case 0x27: if( A>>7 ) F |= FLAG_C; A <<= 1; if( A == 0 ) F |= FLAG_Z; break;
-	case 0x28: if( B&1 ) F |= FLAG_C; B = (s8)B>>1; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x29: if( C&1 ) F |= FLAG_C; C = (s8)C>>1; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x2A: if( D&1 ) F |= FLAG_C; D = (s8)D>>1; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x2B: if( E&1 ) F |= FLAG_C; E = (s8)E>>1; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x2C: if( H&1 ) F |= FLAG_C; H = (s8)H>>1; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x2D: if( L&1 ) F |= FLAG_C; L = (s8)L>>1; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x2E: temp = mem_read8(HL); if( temp&1 ) F |= FLAG_C; temp = (s8)temp>>1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
-	case 0x2F: if( A&1 ) F |= FLAG_C; A = (s8)A>>1; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x20: if( B & 0x80 ) F |= FLAG_C; B <<= 1; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x21: if( C & 0x80 ) F |= FLAG_C; C <<= 1; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x22: if( D & 0x80 ) F |= FLAG_C; D <<= 1; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x23: if( E & 0x80 ) F |= FLAG_C; E <<= 1; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x24: if( H & 0x80 ) F |= FLAG_C; H <<= 1; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x25: if( L & 0x80 ) F |= FLAG_C; L <<= 1; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x26: temp = mem_read8(HL); if( temp & 0x80 ) F |= FLAG_C; temp <<= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
+	case 0x27: if( A & 0x80 ) F |= FLAG_C; A <<= 1; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x28: if( B & 1 ) F |= FLAG_C; B = (s8)B>>1; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x29: if( C & 1 ) F |= FLAG_C; C = (s8)C>>1; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x2A: if( D & 1 ) F |= FLAG_C; D = (s8)D>>1; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x2B: if( E & 1 ) F |= FLAG_C; E = (s8)E>>1; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x2C: if( H & 1 ) F |= FLAG_C; H = (s8)H>>1; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x2D: if( L & 1 ) F |= FLAG_C; L = (s8)L>>1; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x2E: temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp = (s8)temp>>1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
+	case 0x2F: if( A & 1 ) F |= FLAG_C; A = (s8)A>>1; if( A == 0 ) F |= FLAG_Z; break;
 	case 0x30: B = (B<<4)|(B>>4); if( B == 0 ) F |= FLAG_Z; break;
 	case 0x31: C = (C<<4)|(C>>4); if( C == 0 ) F |= FLAG_Z; break;
 	case 0x32: D = (D<<4)|(D>>4); if( D == 0 ) F |= FLAG_Z; break;
@@ -456,14 +462,14 @@ void cb_prefix(u8 op)
 	case 0x35: L = (L<<4)|(L>>4); if( L == 0 ) F |= FLAG_Z; break;
 	case 0x36: temp = mem_read8(HL); mem_write8(HL, (temp<<4)|(temp>>4)); if( temp == 0 ) F |= FLAG_Z; break;
 	case 0x37: A = (A<<4)|(A>>4); if( A == 0 ) F |= FLAG_Z; break;
-	case 0x38: if( B&1 ) F |= FLAG_C; B >>= 1; if( B == 0 ) F |= FLAG_Z; break;
-	case 0x39: if( C&1 ) F |= FLAG_C; C >>= 1; if( C == 0 ) F |= FLAG_Z; break;
-	case 0x3A: if( D&1 ) F |= FLAG_C; D >>= 1; if( D == 0 ) F |= FLAG_Z; break;
-	case 0x3B: if( E&1 ) F |= FLAG_C; E >>= 1; if( E == 0 ) F |= FLAG_Z; break;
-	case 0x3C: if( H&1 ) F |= FLAG_C; H >>= 1; if( H == 0 ) F |= FLAG_Z; break;
-	case 0x3D: if( L&1 ) F |= FLAG_C; L >>= 1; if( L == 0 ) F |= FLAG_Z; break;
-	case 0x3E: temp = mem_read8(HL); if( temp&1 ) F |= FLAG_C; temp >>= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
-	case 0x3F: if( A&1 ) F |= FLAG_C; A >>= 1; if( A == 0 ) F |= FLAG_Z; break;
+	case 0x38: if( B & 1 ) F |= FLAG_C; B >>= 1; if( B == 0 ) F |= FLAG_Z; break;
+	case 0x39: if( C & 1 ) F |= FLAG_C; C >>= 1; if( C == 0 ) F |= FLAG_Z; break;
+	case 0x3A: if( D & 1 ) F |= FLAG_C; D >>= 1; if( D == 0 ) F |= FLAG_Z; break;
+	case 0x3B: if( E & 1 ) F |= FLAG_C; E >>= 1; if( E == 0 ) F |= FLAG_Z; break;
+	case 0x3C: if( H & 1 ) F |= FLAG_C; H >>= 1; if( H == 0 ) F |= FLAG_Z; break;
+	case 0x3D: if( L & 1 ) F |= FLAG_C; L >>= 1; if( L == 0 ) F |= FLAG_Z; break;
+	case 0x3E: temp = mem_read8(HL); if( temp & 1 ) F |= FLAG_C; temp >>= 1; if( temp == 0 ) F |= FLAG_Z; mem_write8(HL, temp); break;
+	case 0x3F: if( A & 1 ) F |= FLAG_C; A >>= 1; if( A == 0 ) F |= FLAG_Z; break;
 	}
 
 	return;
@@ -496,8 +502,8 @@ void adc(u8 p)
 {
 	int cf = (F & FLAG_C) ? 1 : 0;
 	F = 0;
-	if( (u16)A + (u16)B + cf > 0xff )  F |= FLAG_C; 
-	if( (A&0xf) + (B&0xf) + cf > 0xf ) F |= FLAG_H; 
+	if( (u16)A + (u16)p + cf > 0xff )  F |= FLAG_C; 
+	if( (A&0xf) + (p&0xf) + cf > 0xf ) F |= FLAG_H; 
 	A += p + cf;
 	if( A == 0 ) F |= FLAG_Z;
 	return;
@@ -506,8 +512,8 @@ void adc(u8 p)
 void add(u8 p)
 {
 	F = 0; 
-	if( (u16)A + (u16)B > 0xff )  F |= FLAG_C; 
-	if( (A&0xf) + (B&0xf) > 0xf ) F |= FLAG_H; 
+	if( (u16)A + (u16)p > 0xff )  F |= FLAG_C; 
+	if( (A&0xf) + (p&0xf) > 0xf ) F |= FLAG_H; 
 	A += p; 
 	if( A == 0 ) F |= FLAG_Z;
 	return;
@@ -515,11 +521,12 @@ void add(u8 p)
 
 void sub(u8 p)
 {
-	u16 temp = A - p;
+	u16 temp = A;
+	temp -= p;
 	F = FLAG_N;
-	if( (A&0xF) - (p&0xF) > 0xF ) F |= FLAG_H;
+	if( (u16)((A&0xF) - (p&0xF)) > 0xF ) F |= FLAG_H;
 	if( temp > 0xFF ) F |= FLAG_C;
-	A -= p;
+	A = temp;
 	if( A == 0 ) F |= FLAG_Z;
 	return;
 }
@@ -529,18 +536,19 @@ void sbc(u8 p)
 	int cf = (F & FLAG_C) ? 1 : 0;
 	u16 temp = A - p - cf;
 	F = FLAG_N;
-	if( (A&0xF) - (p&0xF) - cf > 0xF ) F |= FLAG_H;
+	if( (u16)((A&0xF) - (p&0xF) - cf) > 0xF ) F |= FLAG_H;
 	if( temp > 0xFF ) F |= FLAG_C;
-	A -= p - cf;
+	A = temp;
 	if( A == 0 ) F |= FLAG_Z;
 	return;
 }
 
 void cp(u8 p)
 {
-	u16 temp = A - p;
+	u16 temp = (u16)A;
+	temp -= (u16)p;
 	F = FLAG_N;
-	if( (A&0xF) - (p&0xF) > 0xF ) F |= FLAG_H;
+	if( (u16)((A&0xF) - (p&0xF)) > 0xF ) F |= FLAG_H;
 	if( temp > 0xFF ) F |= FLAG_C;
 	if( (temp&0xFF) == 0 ) F |= FLAG_Z;
 	return;
@@ -551,9 +559,9 @@ void add_hl(u16 p)
 	u32 temp = HL;
 	temp += p;
 	F &= ~(FLAG_C|FLAG_H|FLAG_N);
-	if( (HL&0xfff) + (p&0xfff) > 0xfff ) F |= FLAG_H;
-	if( temp>>16 ) F |= FLAG_C;
-	HL += p;
+	if( (u16)((HL&0xfff) + (p&0xfff)) > 0xfff ) F |= FLAG_H;
+	if( temp & 0x10000 ) F |= FLAG_C;
+	HL = temp;
 	return;
 }
 

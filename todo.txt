@@ -1,13 +1,16 @@
 ROMBro Todo List
 -------------------
 
-1. ROM loading: mapper, ROM, and EXRAM configuration
-2. Basic instruction cycle array (ignoring extra possible cycles for the moment)
-3. Implement the serial out going to console for Blargg tests
-4. Attempt to implement first video output?
-5. Test bootrom and Blarg cpu tests.
-6. Input?
-7. Sound?
+1. Implement bootrom switchover
+2. Fix background colors, implement sprites
+3. Test bootrom and Blarg cpu tests a bit more
+4. Interrupts?
+5. Input?
+6. Sound?
+
+
+
+
 
 
 

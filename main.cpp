@@ -11,6 +11,8 @@
 extern u16 PC;
 u8* ROMfile;
 bool emubios = true;
+extern u8 BIOS[0x100];
+extern u32 screen[160*144];
 
 SDL_Window* MainWindow;
 SDL_Surface* MainSurf;
@@ -67,6 +69,7 @@ int main(int argc, char** args)
 
 	if( emubios )
 	{
+		printf("Info: Using bootrom file <%s>\n", biosfile.c_str());
 		FILE* fp = fopen(biosfile.c_str(), "rb");
 		if( ! fp )
 		{
@@ -75,7 +78,7 @@ int main(int argc, char** args)
 			return 1;
 		}
 
-		//int unu = fread(BIOS, 1, 512*1024, fp);
+		int unu = fread(BIOS, 1, 256, fp);
 		fclose(fp);
 	}
 	
@@ -123,15 +126,16 @@ int main(int argc, char** args)
 		printf("Error creating renderer\n");
 		return -1;
 	}
-	gfxtex = SDL_CreateTexture(MainRend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
+	gfxtex = SDL_CreateTexture(MainRend, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
 	if( !gfxtex )
 	{
 		printf("Error creating texture\n");
 		return -1;
 	}
+	SDL_SetTextureBlendMode(gfxtex, SDL_BLENDMODE_NONE);
 	glewInit();
 
- 	SDL_Rect rect{ 0,0, 1024, 512 };
+ 	SDL_Rect rect{ 0,0, 320, 288 };
 
 	int scanlines = 0;
 	
@@ -156,28 +160,23 @@ int main(int argc, char** args)
 
 		auto stamp1 = std::chrono::system_clock::now();
 
-		for(int i = 0; i < 400; ++i)
+		for(int i = 0; i < 70000; ++i)
 			gb_interpret();
 
-			
-		if( scanlines >= 143 )
+		//scanlines++;
+		//if( scanlines >= 143 )
 		{
 			scanlines = 0;
 			u8* pixels;
 			u32 stride;
-			//SDL_LockTexture(gfxtex, nullptr,(void**) &pixels,(int*) &stride);
+			SDL_LockTexture(gfxtex, nullptr,(void**) &pixels,(int*) &stride);
 			
-			if( stride == 2048 )
-			{
-				//memcpy(pixels, VRAM, 512*1024*2);
-			} else {
-				//for(int sc = 0; sc < 512; ++sc)	memcpy(pixels+(sc*stride), VRAM+(sc*512), 2048);
-			}
+			memcpy(pixels, screen, 160*144*4);
 		
-			//SDL_UnlockTexture(gfxtex);
+			SDL_UnlockTexture(gfxtex);
 		}
 
-		SDL_RenderCopy(MainRend, gfxtex, &rect, &rect);
+		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);
 		SDL_RenderPresent(MainRend);
 	}
 

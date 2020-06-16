@@ -156,15 +156,15 @@ int main(int argc, char** args)
 
 		glViewport(0, 0, 1200, 720);
 		glClearColor(0.4f, 0.5f, 0.6f, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		//glClear(GL_COLOR_BUFFER_BIT);
 
 		auto stamp1 = std::chrono::system_clock::now();
 
-		for(int i = 0; i < 70000; ++i)
+		for(int i = 0; i < 70224/164; ++i)
 			gb_interpret();
 
-		//scanlines++;
-		//if( scanlines >= 143 )
+		scanlines++;
+		if( scanlines >= 164 )
 		{
 			scanlines = 0;
 			u8* pixels;
@@ -175,7 +175,8 @@ int main(int argc, char** args)
 		
 			SDL_UnlockTexture(gfxtex);
 		}
-
+		
+		glClear(GL_COLOR_BUFFER_BIT);
 		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);
 		SDL_RenderPresent(MainRend);
 	}

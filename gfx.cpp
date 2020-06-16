@@ -15,7 +15,7 @@ u8 OBP1 = 0;
 u8 SCX = 0;
 u8 SCY = 0;
 
-u32 dmg_palette[] = { 0x20202000, 0x60606000, 0xC0C0C000, 0xFFFFF00 };
+u32 dmg_palette[] = { 0x20202000, 0x60606000, 0xC0C0C000, 0xFFFFFF00 };
 
 u8 sprites_online[10] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 u8 shifter_colors[16];
@@ -75,20 +75,20 @@ void gfx_dot()
 	case 3: // screen drawing
 		if( CurX > 159 )
 		{
-			CurX = 0;
 			if( current_dot == end_mode_3 )
 			{
+				CurX = 0;
 				STAT = (STAT&~3) | 0;
-				return;
 			}
 			current_dot++;
+			return;
 		}
 		break; // actual dot draw is the rest of function		
 	}
 	
 	if( current_dot == 80 )
 	{
-		end_mode_3 = 400;
+		end_mode_3 = 80+168;
 	}
 	
 	int scrollvalue = (SCY + (int)LY);
@@ -104,8 +104,6 @@ void gfx_dot()
 	int d1 = VRAM[daddr + tileno*16 + scrollvalue];
 	int d2 = VRAM[daddr + tileno*16 + scrollvalue + 1];
 	
-	//puts("GOT HERE");
-
 	int shft = 7 - ((SCX+CurX)&7);
 	d1 >>= shft;
 	d1 &= 1;
@@ -113,7 +111,6 @@ void gfx_dot()
 	d2 &= 1;
 	d1 = (d1<<1)|d2;
 	screen[LY*160 + CurX] = dmg_palette[d1];
-	//printf("GOT HERE2, LY = %i, x = %i\n", LY, CurX);
 
 	CurX++;
 

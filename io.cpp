@@ -3,11 +3,13 @@
 
 u8 hi_ram[0x80];
 
+extern bool BIOS_On;
 extern u8 LY;
 extern u8 STAT;
 extern u8 SCX;
 extern u8 SCY;
 extern u8 LCDC;
+extern u16 PC;
 
 u8 io_read8(u16 addr)
 {
@@ -27,6 +29,9 @@ u8 io_read8(u16 addr)
 	case 0x42: return SCY;
 	case 0x43: return SCX;
 	case 0x44: return LY;
+	
+	
+	//case 0x50: return 0xFE | BIOS_On;
 	default: break;
 	}
 	return 0;
@@ -56,6 +61,14 @@ void io_write8(u16 addr, u8 val)
 	case 0x41: STAT = (STAT&7) | (val&~7); return;
 	case 0x42: SCY = val; return;
 	case 0x43: SCX = val; return;
+	
+	case 0x50:
+		if( BIOS_On && (val&1) )
+		{
+			printf("BIOS Disabled at PC=%x\n", PC);
+			BIOS_On = false;
+		}
+		return;
 	}	
 
 	return;

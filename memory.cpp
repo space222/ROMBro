@@ -67,7 +67,7 @@ u8 mem_read8(u16 addr)
 		return ROM_hi[addr&0x3fff];	
 	}
 	
-	if( addr < 0x100 )
+	if( addr < 0x100 && BIOS_On )
 	{
 		return BIOS[addr];
 	}
@@ -111,7 +111,7 @@ void mem_write8(u16 addr, u8 val)
 		}
 	}
 	
-	if( addr >= 0x8000 && BIOS_On )
+	if( addr >= 0x8000 )
 	{
 		VRAM[addr&0x1fff] = val;
 		return;

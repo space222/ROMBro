@@ -134,6 +134,8 @@ void gb_mapping()
 		printf("Running DMG Mode.\n");
 	}
 	
+	printf("ROM type: %i\n", ROMfile[0x147]);
+	
 	switch( ROMfile[0x147] )
 	{
 	case 8:
@@ -178,6 +180,7 @@ void gb_mapping()
 	ROM_lo = &ROMfile[0];
 	ROM_hi = &ROMfile[0x4000];
 	
+	printf("RAM type: %i\n", ROMfile[0x149]);
 	switch( ROMfile[0x149] )
 	{
 	case 0: if( gb_mapper == MBC2 ) gb_ram_type = MBC2_RAM; else gb_ram_type = NO_RAM; break;

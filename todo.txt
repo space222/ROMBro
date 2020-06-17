@@ -1,11 +1,11 @@
 ROMBro Todo List
 -------------------
 
-1. Implement bootrom switchover
-2. Fix background colors, implement sprites
-3. Test bootrom and Blarg cpu tests a bit more
+1. Input
+2. background palette support 
+3. Sprites
 4. Interrupts?
-5. Input?
+5. More MBCs?
 6. Sound?
 
 

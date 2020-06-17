@@ -15,7 +15,7 @@ u8 OBP1 = 0;
 u8 SCX = 0;
 u8 SCY = 0;
 
-u32 dmg_palette[] = { 0x20202000, 0x60606000, 0xC0C0C000, 0xFFFFFF00 };
+u32 dmg_palette[] = { 0xFFFFFF00, 0xC0C0C000, 0x60606000, 0x20202000 };
 
 u8 sprites_online[10] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 u8 shifter_colors[16];
@@ -45,6 +45,12 @@ void gfx_dot()
 			} else {
 				STAT = (STAT&~3) | 2;
 			}
+			if( LY == LYC )
+			{
+				STAT |= 4;
+			} else {
+				STAT &= ~4;
+			}
 			//TODO: LYC and vblank interrupt		
 		}
 		return;
@@ -68,6 +74,12 @@ void gfx_dot()
 			{
 				LY = 0;
 				STAT = (STAT&~3) | 2;	
+			}
+			if( LY == LYC )
+			{
+				STAT |= 4;
+			} else {
+				STAT &= ~4;
 			}
 			//TODO: LYC interrupt
 		}
@@ -98,11 +110,23 @@ void gfx_dot()
 	taddr += st;
 	int tileno = VRAM[taddr];
 	
-	int daddr = (LCDC&0x10) ? 0 : 0x800;
+	int daddr = 0;// (LCDC&0x10) ? 0 : 0x800;
+	if( !(LCDC & 0x10) )
+	{
+		if( tileno & 0x80 )
+		{
+			tileno &= 0x7f;
+			daddr += 0x800;
+		} else {
+			daddr += 0x1000;
+		}
+	}
+	daddr += tileno*16;
+
 	scrollvalue &= 7;
 	scrollvalue <<= 1;
-	int d1 = VRAM[daddr + tileno*16 + scrollvalue];
-	int d2 = VRAM[daddr + tileno*16 + scrollvalue + 1];
+	int d1 = VRAM[daddr + scrollvalue];
+	int d2 = VRAM[daddr + scrollvalue + 1];
 	
 	int shft = 7 - ((SCX+CurX)&7);
 	d1 >>= shft;

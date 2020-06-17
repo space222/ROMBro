@@ -11,6 +11,7 @@
 extern u16 PC;
 u8* ROMfile;
 bool emubios = true;
+extern bool BIOS_On;
 extern u8 BIOS[0x100];
 extern u32 screen[160*144];
 
@@ -42,6 +43,7 @@ int main(int argc, char** args)
 	if( result.count("b") )
 	{
 		emubios = false;
+		BIOS_On = false;
 	}
 	if( result.count("B") )
 	{

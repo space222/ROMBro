@@ -15,6 +15,7 @@ extern bool BIOS_On;
 extern u8 BIOS[0x100];
 extern u32 screen[160*144];
 
+u8* keys;
 SDL_Window* MainWindow;
 SDL_Surface* MainSurf;
 SDL_Texture* gfxtex;
@@ -156,6 +157,8 @@ int main(int argc, char** args)
 			}
 		}
 
+		keys =(u8*) SDL_GetKeyboardState(NULL);
+	
 		glViewport(0, 0, 1200, 720);
 		glClearColor(0.4f, 0.5f, 0.6f, 0);
 		//glClear(GL_COLOR_BUFFER_BIT);

@@ -1,12 +1,10 @@
 ROMBro Todo List
 -------------------
 
-1. Input
-2. background palette support 
-3. Sprites
-4. Interrupts?
-5. More MBCs?
-6. Sound?
+1. Sprites
+2. Interrupts?
+3. More MBCs?
+4. Sound?
 
 
 

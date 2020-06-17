@@ -133,8 +133,8 @@ void gfx_dot()
 	d1 &= 1;
 	d2 >>= shft;
 	d2 &= 1;
-	d1 = (d1<<1)|d2;
-	screen[LY*160 + CurX] = dmg_palette[d1];
+	d1 = (d2<<1)|d1;
+	screen[LY*160 + CurX] = dmg_palette[(BGP>>(d1*2))&3];
 
 	CurX++;
 

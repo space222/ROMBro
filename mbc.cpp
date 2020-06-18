@@ -33,6 +33,7 @@ void mbc_write8(u16 addr, u8 val)
 	{
 		if( addr >= 0x2000 && addr < 0x4000 )
 		{
+			if( val == 0 ) val = 1;
 			bank_num = val & 0x7f;
 		} else if( addr >= 0x4000 && addr < 0x6000 ) {
 			if( val < 4 )
@@ -40,6 +41,8 @@ void mbc_write8(u16 addr, u8 val)
 				exram_bank_offset = (val&3) * 8 * 1024;
 			} else if( val > 8 && val < 0xd ) {
 				//TODO: RTC regs
+				printf("RTC regs in MBC3!\n");
+				exit(1);
 			}
 		}
 	

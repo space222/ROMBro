@@ -1,12 +1,15 @@
 ROMBro Todo List
 -------------------
 
-1. Sprites
-2. More MBCs?
-3. Sound?
+There's not many more essential items to having full(ish) [original] gameboy emulation,
+so I've stopped numbering the tasks:
+
+- Sound
+- There's definitely still display bugs (PokemonRed title screen, Zelda sprite overlap, etc)
+- More and better MBC support (RAM enable/disable, RTC regs, etc)
 
 
-
+After that, there's just the Color features.
 
 
 

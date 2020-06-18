@@ -9,7 +9,7 @@ extern u8 IE;
 
 u8 LCDC = 0;
 u8 STAT = 2;
-u8 LYC = 140;
+u8 LYC = 40;
 u8 LY = 3;
 u8 BGP = 0;
 u8 OBP0 = 0;
@@ -48,7 +48,7 @@ void gfx_dot()
 		{
 			current_dot = 0;
 			LY++;
-			if( LY == 164 ) LY = 0;
+			if( LY == 154 ) LY = 0;
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
@@ -91,7 +91,7 @@ void gfx_dot()
 			scanlineLYC = LYC;
 			current_dot = 0;
 			LY++;
-			if( LY > 163 ) 
+			if( LY > 153 ) 
 			{
 				LY = 0;
 				STAT = (STAT&~3) | 2;	
@@ -133,7 +133,7 @@ void gfx_dot()
 	} else {
 		int scrollvalue = (scanlineSCY + (int)LY);
 		
-		int st = (32 * ((scrollvalue>>3)&0x1F)) + (((scanlineSCX>>3) + (CurX>>3)) & 0x1F);
+		int st = (32 * ((scrollvalue>>3)&0x1F)) + (((scanlineSCX+CurX)>>3) & 0x1F);
 		int taddr = (LCDC&8) ? 0x1C00 : 0x1800;
 		taddr += st;
 		int tileno = VRAM[taddr];
@@ -156,14 +156,13 @@ void gfx_dot()
 		d1 = VRAM[daddr + scrollvalue];
 		int d2 = VRAM[daddr + scrollvalue + 1];
 		
-		int shft = 7 - ((CurX+scanlineSCX)&7);
+		int shft = 7 - ((scanlineSCX+CurX)&7);
 		d1 >>= shft;
 		d1 &= 1;
 		d2 >>= shft;
 		d2 &= 1;
 		d1 = (d2<<1)|d1;
 		screen[LY*160 + CurX] = dmg_palette[(BGP>>(d1*2))&3];
-		
 	}
 	
 	if( LCDC&2 ) for(int i = 0; i < num_sprites; ++i)

@@ -128,8 +128,35 @@ void gfx_dot()
 	
 	if( (LCDC & 0x20) && (LY >= scanlineWY) && (CurX >= (scanlineWX-7)) )
 	{
+		int st = (32 * ((LY-scanlineWY)>>3)) + ((CurX-(scanlineWX-7))>>3);
+		int taddr = (LCDC&0x40) ? 0x1C00 : 0x1800;
+		taddr += st;
+		int tileno = VRAM[taddr];
 		
-	
+		int daddr = 0;
+		if( !(LCDC & 0x10) )
+		{
+			if( tileno & 0x80 )
+			{
+				tileno &= 0x7f;
+				daddr += 0x800;
+			} else {
+				daddr += 0x1000;
+			}			
+		}
+		daddr += tileno*16;
+
+		int row = (LY-scanlineWY)&7;
+
+		d1 = VRAM[daddr + row*2];
+		int d2 = VRAM[daddr + row*2 + 1];
+		int shft = 7 - (((scanlineWX-7)+CurX)&7);
+		d1 >>= shft;
+		d1 &= 1;
+		d2 >>= shft;
+		d2 &= 1;
+		d1 = (d2<<1)|d1;
+		screen[LY*160 + CurX] = dmg_palette[(BGP>>(d1*2))&3];		
 	} else {
 		int scrollvalue = (scanlineSCY + (int)LY);
 		
@@ -204,7 +231,7 @@ void gfx_dot()
 			sd1 = (sd2<<1)|sd1;
 			u8 pal = (attr&0x10) ? OBP1 : OBP0;
 			if( sd1 && !((attr&0x80) && d1) ) screen[LY*160 + CurX] = dmg_palette[(pal>>(sd1*2))&3];
-			break;
+			if( sd1 ) break;
 		}	
 	}
 

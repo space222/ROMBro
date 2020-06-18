@@ -118,7 +118,7 @@ void io_write8(u16 addr, u8 val)
 	case 0x42: SCY = val; return;
 	case 0x43: SCX = val; return;
 	
-	case 0x45: LYC = val; printf("LYC set to %i\n", LYC); return;
+	case 0x45: LYC = val; return;
 	case 0x46: {
 		u16 base = val << 8;
 		for(int i = 0; i < 0xA0; ++i) OAM[i] = mem_read8(base++);	

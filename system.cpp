@@ -3,6 +3,7 @@
 #include "types.h"
 
 void gfx_cycles(int);
+void snd_cycles(int);
 
 void push16(u16);
 

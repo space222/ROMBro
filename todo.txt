@@ -2,9 +2,8 @@ ROMBro Todo List
 -------------------
 
 1. Sprites
-2. Interrupts?
-3. More MBCs?
-4. Sound?
+2. More MBCs?
+3. Sound?
 
 
 

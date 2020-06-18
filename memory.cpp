@@ -30,7 +30,7 @@ void mbc_write8(u16,u8);
 
 u8 mem_read8(u16 addr)
 {
-	if( addr >= 0xFF00 ) return io_read8(addr);
+	if( addr >= 0xFF00 ) return io_read8(addr & 0xFF);
 
 	if( addr >= 0xFEA0 ) return 0; //unusable range
 	
@@ -79,7 +79,7 @@ void mem_write8(u16 addr, u8 val)
 {
 	if( addr >= 0xFF00 )
 	{
-		io_write8(addr, val);
+		io_write8(addr & 0xFF, val);
 		return;
 	}
 
@@ -134,7 +134,7 @@ void gb_mapping()
 		printf("Running DMG Mode.\n");
 	}
 	
-	printf("ROM type: %i\n", ROMfile[0x147]);
+	printf("ROM type: %x\n", ROMfile[0x147]);
 	
 	switch( ROMfile[0x147] )
 	{

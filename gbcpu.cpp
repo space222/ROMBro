@@ -2,13 +2,19 @@
 #include <cstdlib>
 #include "types.h"
 
-// blargg cpu tests that pass: monolithic (probable false positive), 01, 03, 04, 05, 06, 08, 09, 10, 11
+// blargg cpu tests that pass: monolithic (probable false positive), 01, 03, 04, 05, 06, 08, 07 09, 10, 11
 // blargg cpu tests that fail (and why if known): 
 // 	02 - interrupts not implemented, test should fail
-//	07 - interrupts not implemented, RETI should fail 
+
+extern u8 STAT;
+extern u8 IE;
+extern u8 IF;
+extern bool IME;
 
 reg cpu[5];
 u16 PC = 0;
+bool IME = false;
+bool Halted = false;
 
 int instr_cycles[] = {	4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
 			4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
@@ -74,8 +80,22 @@ void system_cycles(int);
 
 void gb_interpret()
 {
+	u8 service = IE & IF;
+
+	if( IME && service ) for(int i = 0; i < 5; ++i)
+	{
+		int bit = (1 << i);
+		if( !(service & bit) ) continue;
+	
+		IF &= ~bit;
+		IME = false;
+		if( Halted ) { Halted = false; PC++; }
+		push16(PC);
+		PC = 0x40|(i<<3);
+		break;
+	}
+
 	u8 op = mem_read8(PC++);
-	system_cycles(instr_cycles[op]);
 	u8 temp = 0;
 	
 	switch( op )
@@ -213,7 +233,7 @@ void gb_interpret()
 	case 0x73: mem_write8(HL, E); break;
 	case 0x74: mem_write8(HL, H); break;
 	case 0x75: mem_write8(HL, L); break;
-	case 0x76: break; //TODO: halt
+	case 0x76: Halted = true; PC--; /* printf("Program halted with STAT = %x, IE = %x\n", STAT, IE); */ break; //TODO: halt
 	case 0x77: mem_write8(HL, A); break;
 	case 0x78: A = B; break;
 	case 0x79: A = C; break;
@@ -313,8 +333,9 @@ void gb_interpret()
 	case 0xD7: push16(PC); PC = 0x10; break;
 	case 0xD8: if( F & FLAG_C ) PC = pop16(); break;
 	case 0xD9: // RETI
-		PC = imm16();
-		//TODO: enable interrupts	
+		PC = pop16();
+		IME = true;
+		//TODO: enable interrupts delay?	
 		break;
 	case 0xDA: if( F & FLAG_C ) PC = imm16(); else PC += 2; break;
 	//   0xDB is undefined
@@ -342,7 +363,7 @@ void gb_interpret()
 	case 0xF0: A = io_read8(mem_read8(PC++)); break;
 	case 0xF1: AF = pop16(); F &= 0xF0; break;
 	case 0xF2: A = io_read8(0xFF00 + C); break;
-	case 0xF3: break; //TODO: DI
+	case 0xF3: IME = false; break; //TODO: DI delay.
 	//   0xF4 undefined
 	case 0xF5: push16(AF); break;
 	case 0xF6: F = 0; A |= mem_read8(PC++); if( A == 0 ) F |= FLAG_Z; break;
@@ -355,12 +376,14 @@ void gb_interpret()
 		break;
 	case 0xF9: SP = HL; break;
 	case 0xFA: A = mem_read8(imm16()); break;
-	case 0xFB: break; //TODO: EI
+	case 0xFB: IME = true; break; //TODO: EI delay?
 	//   0xFC and 0xFD undefined		
 	case 0xFE: cp(mem_read8(PC++)); break;
 	case 0xFF: push16(PC); PC = 0x38; break;
 	default: printf("Undefined opcode 0x%X\n", op); exit(1); break;
 	}
+	
+	system_cycles(instr_cycles[op]);
 
 	return;
 }

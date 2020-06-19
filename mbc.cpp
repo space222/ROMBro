@@ -9,6 +9,8 @@ int bank_num = 0;
 extern u8* ROMfile;
 extern u8* ROM_hi;
 extern int exram_bank_offset;
+extern bool rtc_regs_active;
+extern bool hasRTC;
 
 void mbc_write8(u16 addr, u8 val)
 {
@@ -38,11 +40,10 @@ void mbc_write8(u16 addr, u8 val)
 		} else if( addr >= 0x4000 && addr < 0x6000 ) {
 			if( val < 4 )
 			{
+				rtc_regs_active = false;
 				exram_bank_offset = (val&3) * 8 * 1024;
 			} else if( val > 8 && val < 0xd ) {
-				//TODO: RTC regs
-				printf("RTC regs in MBC3!\n");
-				exit(1);
+				if( hasRTC ) rtc_regs_active = true;
 			}
 		}
 	

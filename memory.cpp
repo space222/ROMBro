@@ -5,6 +5,9 @@ extern u8* ROMfile;
 u8 BIOS[0x100];
 bool BIOS_On = true;
 
+extern u8 STAT;
+extern u8 LCDC;
+
 int gb_mapper = 0;
 int gb_rom_banks = 0;
 int gb_ram_type = 0;
@@ -28,13 +31,19 @@ u8 io_read8(u16);
 void io_write8(u16,u8);
 void mbc_write8(u16,u8);
 
+bool rtc_regs_active = false;
+
 u8 mem_read8(u16 addr)
 {
 	if( addr >= 0xFF00 ) return io_read8(addr & 0xFF);
 
 	if( addr >= 0xFEA0 ) return 0; //unusable range
 	
-	if( addr >= 0xFE00 ) return OAM[addr&0xff];
+	if( addr >= 0xFE00 ) 
+	{
+		if( 1 /*(STAT & 3) < 2 || !(LCDC&0x80)*/ ) return OAM[addr&0xff];
+		//return 0xff;
+	}
 	
 	if( addr >= 0xC000 )
 	{
@@ -44,6 +53,7 @@ u8 mem_read8(u16 addr)
 	
 	if( addr >= 0xA000 )
 	{
+		if( rtc_regs_active ) return 0;
 		if( gb_ram_type == NO_RAM ) return 0;
 		if( gb_ram_type == MBC2_RAM )
 		{
@@ -59,6 +69,7 @@ u8 mem_read8(u16 addr)
 	
 	if( addr >= 0x8000 )
 	{
+		//if( ((STAT & 3) == 3) && (LCDC & 0x80) ) return 0xff;
 		return VRAM[addr&0x1fff];	
 	}
 	
@@ -87,7 +98,7 @@ void mem_write8(u16 addr, u8 val)
 
 	if( addr >= 0xFE00 )
 	{
-		OAM[addr&0xff] = val;
+		if( 1 /* ((STAT & 3) > 1) || !(LCDC&0x80) */ ) OAM[addr&0xff] = val;
 		return;
 	}
 	
@@ -100,6 +111,7 @@ void mem_write8(u16 addr, u8 val)
 	
 	if( addr >= 0xA000 )
 	{
+		if( rtc_regs_active ) return;
 		if( gb_ram_type == NO_RAM ) return;
 		if( gb_ram_type == MBC2_RAM )
 		{
@@ -109,10 +121,12 @@ void mem_write8(u16 addr, u8 val)
 		} else {
 			EXRAM[exram_bank_offset + (addr&0x1fff)] = val;
 		}
+		return;
 	}
 	
 	if( addr >= 0x8000 )
 	{
+		//if( (STAT & 3) == 3 && (LCDC & 0x80) ) return;
 		VRAM[addr&0x1fff] = val;
 		return;
 	}
@@ -122,13 +136,17 @@ void mem_write8(u16 addr, u8 val)
 	return;
 }
 
+bool hasRTC = false;
 bool isColorGB = false;
+extern bool BIOS_On;
+extern bool emubios;
 
 void gb_mapping()
 {
 	if( ROMfile[0x143] & 0x80 )
 	{
 		isColorGB = true;
+		emubios = BIOS_On = false;
 		printf("File is a GBC ROM.\n");
 	} else {
 		printf("Running DMG Mode.\n");
@@ -146,8 +164,8 @@ void gb_mapping()
 	case 3: gb_mapper = MBC1; break;
 	case 5:
 	case 6: gb_mapper = MBC2;  break;
-	case 0xF:
-	case 0x10:
+	case 0xF:  hasRTC = true;
+	case 0x10: hasRTC = true;
 	case 0x11:
 	case 0x12:
 	case 0x13: gb_mapper = MBC3; break;

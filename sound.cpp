@@ -22,4 +22,24 @@ void snd_cycles(int c)
 
 
 
+void snd_callback(void* userdata, u8* stream, int len)
+{
+	for(int i = 0; i < len; ++i) stream[i] = 0;
+
+
+	return;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 

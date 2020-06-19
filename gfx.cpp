@@ -7,6 +7,7 @@ extern u8 OAM[0x100];
 extern u8* VRAM;
 extern u8 IF;
 extern u8 IE;
+extern bool isColorGB;
 
 u8 LCDC = 0;
 u8 STAT = 2;
@@ -135,7 +136,7 @@ void gfx_dot()
 	
 	if( (LCDC & 0x20) && (LY >= scanlineWY) && (CurX >= (scanlineWX-7)) )
 	{
-		int st = (32 * ((LY-scanlineWY)>>3)) + ((CurX-(scanlineWX-7))>>3);
+		int st = (32 * ((LY-scanlineWY)>>3)) + (((CurX-(scanlineWX-7))>>3)&0x1F);
 		int taddr = (LCDC&0x40) ? 0x1C00 : 0x1800;
 		taddr += st;
 		int tileno = VRAM[taddr];
@@ -149,7 +150,7 @@ void gfx_dot()
 				daddr += 0x800;
 			} else {
 				daddr += 0x1000;
-			}			
+			}	
 		}
 		daddr += tileno*16;
 
@@ -199,7 +200,7 @@ void gfx_dot()
 		screen[LY*160 + CurX] = dmg_palette[(BGP>>(d1*2))&3];
 	}
 	
-	if( LCDC&2 ) for(int i = 0; i < num_sprites; ++i)
+	if( (LCDC&2) ) for(int i = 0; i < num_sprites; ++i)
 	{
 		if( sprites_online[i] == 0xFF ) continue;
 		//if(i == 0) printf("num sprites = %i\n", num_sprites);
@@ -209,7 +210,7 @@ void gfx_dot()
 		sprX -= 8;
 		sprY -= 16;
 			
-		if( sprX >= 0 && CurX - sprX < 8 && CurX - sprX >= 0 )
+		if( CurX - sprX < 8 && CurX - sprX >= 0 )
 		{
 			int attr = OAM[sprites_online[i]*4 + 3];
 			int stile = OAM[sprites_online[i]*4 + 2];
@@ -217,7 +218,7 @@ void gfx_dot()
 			int rowoff = LY - sprY;
 			if( attr & 0x40 )
 			{
-				rowoff = ((LCDC & 2) ? 15 : 7) - rowoff;
+				rowoff = ((LCDC & 4) ? 15 : 7) - rowoff;
 			}
 			if( LCDC & 4 )
 			{
@@ -259,7 +260,7 @@ void gfx_find_sprites()
 	{
 		int sprY = OAM[i*4];
 		sprY -= 16;
-		if( sprY >= 0 && LY - sprY < sprHeight && LY - sprY >= 0 )
+		if( LY - sprY < sprHeight && LY - sprY >= 0 )
 		{
 			sprites_online[sx++] = i;		
 		}
@@ -269,19 +270,21 @@ void gfx_find_sprites()
 	
 	//for(int i = sx; i < 10; ++i) sprites_online[i] = 0xff;
 	
-	for(int i = 0; i < sx-1; ++i)
+	if( ! isColorGB )
 	{
-		for(int y = i; y < sx; ++y)
+		for(int i = 0; i < sx-1; ++i)
 		{
-			if( OAM[sprites_online[i]*4 + 1] > OAM[sprites_online[y]*4 + 1] )
+			for(int y = i; y < sx; ++y)
 			{
-				u8 temp = sprites_online[i];
-				sprites_online[i] = sprites_online[y];
-				sprites_online[y] = temp;
-			}	
+				if( OAM[sprites_online[i]*4 + 1] > OAM[sprites_online[y]*4 + 1] )
+				{
+					u8 temp = sprites_online[i];
+					sprites_online[i] = sprites_online[y];
+					sprites_online[y] = temp;
+				}	
+			}
 		}
 	}
-
 	return;
 }
 

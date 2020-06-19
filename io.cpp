@@ -158,7 +158,7 @@ void io_write8(u16 addr, u8 val)
 			BIOS_On = false;
 		}
 		return;
-		
+
 	case 0xFF: IE = val&0x1F; /*printf("IE set to %x\n", IE);*/ return;
 	default: break;
 	}

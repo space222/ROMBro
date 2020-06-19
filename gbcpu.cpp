@@ -95,6 +95,8 @@ void gb_interpret()
 		break;
 	}
 
+	//printf("PC = %x\n", PC);
+
 	u8 op = mem_read8(PC++);
 	u8 temp = 0;
 	
@@ -634,10 +636,12 @@ void daa()
 }
 
 extern bool emubios;
+extern bool isColorGB;
 
 void gb_reset()
 {
 	AF = 0x01B0;
+	if( isColorGB ) A = 0x11;
 	BC = 0x0013;
 	DE = 0x00D8;
 	HL = 0x014D;

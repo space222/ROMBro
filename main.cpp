@@ -26,6 +26,7 @@ std::chrono::system_clock::time_point stamp;
 void gb_reset();
 void gb_interpret();
 void gb_mapping();
+void snd_callback(void*, u8*, int);
 
 int main(int argc, char** args)
 {
@@ -56,7 +57,7 @@ int main(int argc, char** args)
 		std::cout << options.help() << std::endl;
 		return 0;
 	}
-	int zfactor = 1;
+	int zfactor = 2;
 	if( result.count("x") )
 	{
 		zfactor = result["x"].as<int>();
@@ -102,11 +103,11 @@ int main(int argc, char** args)
 	SDL_memset(&want, 0, sizeof(want));
 	want.freq = 44100;
 	want.format = AUDIO_F32;
-	want.channels = 1;
+	want.channels = 2;
 	want.samples = 1024;
-	//want.callback = snd_callback;
+	want.callback = snd_callback;
 
-	/*dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+	dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
 	if (dev == 0) 
 	{
 		printf("Error: Failed to open audio: %s\n", SDL_GetError());
@@ -115,7 +116,6 @@ int main(int argc, char** args)
 		printf("Error: need float32 audio format.\n");
 	}
 	SDL_PauseAudioDevice(dev, 0);
-	*/
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);

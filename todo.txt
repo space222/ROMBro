@@ -5,7 +5,8 @@ There's not many more essential items to having full(ish) [original] gameboy emu
 so there are now non-numbered tasks:
 
 - Sound
-- There's definitely still display bugs (PokemonRed title screen, sprites disappear too far down the screen, etc)
+- Only load bootrom after the type (orig. or color) of rom is known.
+- There's definitely still display bugs (PokemonRed title screen and sprite wobble, etc)
 - More and better MBC support (RAM enable/disable, RTC regs, etc)
 
 

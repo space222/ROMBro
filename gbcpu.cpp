@@ -98,6 +98,8 @@ void gb_interpret()
 	u8 op = mem_read8(PC++);
 	u8 temp = 0;
 	
+	system_cycles(instr_cycles[op]);
+	
 	switch( op )
 	{
 	case 0x00: break; // nop
@@ -132,7 +134,7 @@ void gb_interpret()
 	case 0x1D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(E & 0xF) ) F |= FLAG_H; E--; if( E == 0 ) F |= FLAG_Z; break;	
 	case 0x1E: E = mem_read8(PC++); break; // LD E, n
 	case 0x1F: temp = (F>>4)&1; F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(temp<<7); break;
-	case 0x20: temp = mem_read8(PC++); if( !(F & FLAG_Z) ) PC += (s8)temp; break;
+	case 0x20: temp = mem_read8(PC++); if( !(F & FLAG_Z) ) { PC += (s8)temp; system_cycles(4); } break;
 	case 0x21: HL = imm16(); break;
 	case 0x22: mem_write8(HL++, A); break;
 	case 0x23: HL++; break;
@@ -140,7 +142,7 @@ void gb_interpret()
 	case 0x25: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(H & 0xF) ) F |= FLAG_H; H--; if( H == 0 ) F |= FLAG_Z; break;	
 	case 0x26: H = mem_read8(PC++); break; // LD H, n
 	case 0x27: daa(); break;
-	case 0x28: temp = mem_read8(PC++); if( F & FLAG_Z ) PC += (s8)temp; break;	
+	case 0x28: temp = mem_read8(PC++); if( F & FLAG_Z ) { PC += (s8)temp; system_cycles(4); } break;	
 	case 0x29: add_hl(HL); break;
 	case 0x2A: A = mem_read8(HL++); break;
 	case 0x2B: HL--; break;
@@ -148,7 +150,7 @@ void gb_interpret()
 	case 0x2D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(L & 0xF) ) F |= FLAG_H; L--; if( L == 0 ) F |= FLAG_Z; break;
 	case 0x2E: L = mem_read8(PC++); break; // LD L, n
 	case 0x2F: A = ~A; F |= (FLAG_N|FLAG_H); break;
-	case 0x30: temp = mem_read8(PC++); if( !(F & FLAG_C) ) PC += (s8)temp; break;	
+	case 0x30: temp = mem_read8(PC++); if( !(F & FLAG_C) ) { PC += (s8)temp; system_cycles(4); } break;	
 	case 0x31: SP = imm16(); break;	
 	case 0x32: mem_write8(HL--, A); break;
 	case 0x33: SP++; break;
@@ -171,7 +173,7 @@ void gb_interpret()
 		break;
 	case 0x36: mem_write8(HL, mem_read8(PC++)); break;
 	case 0x37: F &= ~(FLAG_N|FLAG_H); F |= FLAG_C; break; // SCF
-	case 0x38: temp = mem_read8(PC++); if( F & FLAG_C ) PC += (s16)(s8)temp; break;
+	case 0x38: temp = mem_read8(PC++); if( F & FLAG_C ) { PC += (s16)(s8)temp; system_cycles(4); } break;
 	case 0x39: add_hl(SP); break;
 	case 0x3A: A = mem_read8(HL--); break;
 	case 0x3B: SP--; break;
@@ -307,39 +309,39 @@ void gb_interpret()
 	case 0xBD: cp(L); break;
 	case 0xBE: cp(mem_read8(HL)); break;
 	case 0xBF: cp(A); break;	
-	case 0xC0: if( !(F & FLAG_Z) ) PC = pop16(); break;
+	case 0xC0: if( !(F & FLAG_Z) ) { PC = pop16(); system_cycles(16); } break;
 	case 0xC1: BC = pop16(); break;
-	case 0xC2: if( !(F & FLAG_Z) ) PC = imm16(); else PC += 2; break;
+	case 0xC2: if( !(F & FLAG_Z) ) { PC = imm16(); system_cycles(4); } else PC += 2; break;
 	case 0xC3: PC = imm16(); break;
-	case 0xC4: if( !(F & FLAG_Z) ) { push16(PC+2); PC = imm16(); } else PC += 2; break;
+	case 0xC4: if( !(F & FLAG_Z) ) { push16(PC+2); PC = imm16(); system_cycles(12); } else PC += 2; break;
 	case 0xC5: push16(BC); break;
 	case 0xC6: add(mem_read8(PC++)); break;
 	case 0xC7: push16(PC); PC = 0; break;
-	case 0xC8: if( F & FLAG_Z ) PC = pop16(); break;
+	case 0xC8: if( F & FLAG_Z ) { PC = pop16(); system_cycles(16); } break;
 	case 0xC9: PC = pop16(); break;
-	case 0xCA: if( F & FLAG_Z ) PC = imm16(); else PC += 2; break;
+	case 0xCA: if( F & FLAG_Z ) { PC = imm16(); system_cycles(4); } else PC += 2; break;
 	case 0xCB: cb_prefix(mem_read8(PC++)); break;
-	case 0xCC: if( F & FLAG_Z ) { push16(PC+2); PC = imm16(); } else PC += 2; break;
+	case 0xCC: if( F & FLAG_Z ) { push16(PC+2); PC = imm16(); system_cycles(12); } else PC += 2; break;
 	case 0xCD: push16(PC+2); PC = imm16(); break;
 	case 0xCE: adc(mem_read8(PC++)); break;
 	case 0xCF: push16(PC); PC = 8; break;
-	case 0xD0: if( !(F & FLAG_C) ) PC = pop16(); break;
+	case 0xD0: if( !(F & FLAG_C) ) { PC = pop16(); system_cycles(16); } break;
 	case 0xD1: DE = pop16(); break;
-	case 0xD2: if( !(F & FLAG_C) ) PC = imm16(); else PC += 2; break;
+	case 0xD2: if( !(F & FLAG_C) ) { PC = imm16(); system_cycles(4); } else PC += 2; break;
 	//   0xD3 is undefined
-	case 0xD4: if( !(F & FLAG_C) ) { push16(PC+2); PC = imm16(); } else PC += 2; break;
+	case 0xD4: if( !(F & FLAG_C) ) { push16(PC+2); PC = imm16(); system_cycles(12); } else PC += 2; break;
 	case 0xD5: push16(DE); break;
 	case 0xD6: sub(mem_read8(PC++)); break;
 	case 0xD7: push16(PC); PC = 0x10; break;
-	case 0xD8: if( F & FLAG_C ) PC = pop16(); break;
+	case 0xD8: if( F & FLAG_C ) { PC = pop16(); system_cycles(16); } break;
 	case 0xD9: // RETI
 		PC = pop16();
 		IME = true;
 		//TODO: enable interrupts delay?	
 		break;
-	case 0xDA: if( F & FLAG_C ) PC = imm16(); else PC += 2; break;
+	case 0xDA: if( F & FLAG_C ) { PC = imm16(); system_cycles(4); } else PC += 2; break;
 	//   0xDB is undefined
-	case 0xDC: if( F & FLAG_C ) { push16(PC+2); PC = imm16(); } else PC += 2; break;
+	case 0xDC: if( F & FLAG_C ) { push16(PC+2); PC = imm16(); system_cycles(12); } else PC += 2; break;
 	//   0xDD is undefined
 	case 0xDE: sbc(mem_read8(PC++)); break;
 	case 0xDF: push16(PC); PC = 0x18; break;
@@ -383,8 +385,6 @@ void gb_interpret()
 	default: printf("Undefined opcode 0x%X\n", op); exit(1); break;
 	}
 	
-	system_cycles(instr_cycles[op]);
-
 	return;
 }
 

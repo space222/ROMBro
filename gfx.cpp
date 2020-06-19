@@ -1,7 +1,8 @@
-#include <algorithm>
+#include <SDL.h>
 #include "types.h"
 
 u32 screen[160*144];
+extern SDL_Texture* gfxtex;
 extern u8 OAM[0x100];
 extern u8* VRAM;
 extern u8 IF;
@@ -19,7 +20,8 @@ u8 SCY = 0;
 u8 WX = 0;
 u8 WY = 0;
 u32 dmg_palette[] = { 0xFFFFFF00, 0xC0C0C000, 0x60606000, 0x20202000 };
-
+u32 gbc_bg_palette[0x20] = {0};
+u32 gbc_spr_palette[0x20] = {0};
 int num_sprites = 0;
 u8 sprites_online[10] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 u8 shifter_colors[16];
@@ -48,20 +50,20 @@ void gfx_dot()
 		{
 			current_dot = 0;
 			LY++;
-			if( LY == 154 ) LY = 0;
+			//if( LY == 154 ) LY = 0;
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
 				STAT = (STAT&~3) | 1;
 			} else {
+				if( LY == scanlineLYC )
+				{
+					if( STAT & 0x40 ) IF |= 2;
+					STAT |= 4;
+				} else {
+					STAT &= ~4;
+				}
 				STAT = (STAT&~3) | 2;
-			}
-			if( LY == scanlineLYC )
-			{
-				if( STAT & 0x40 ) IF |= 2;
-				STAT |= 4;
-			} else {
-				STAT &= ~4;
 			}
 		}
 		return;
@@ -93,6 +95,11 @@ void gfx_dot()
 			LY++;
 			if( LY > 153 ) 
 			{
+				u8* pixels;
+				u32 stride;
+				SDL_LockTexture(gfxtex, nullptr,(void**) &pixels,(int*) &stride);
+				memcpy(pixels, screen, 160*144*4);
+				SDL_UnlockTexture(gfxtex);
 				LY = 0;
 				STAT = (STAT&~3) | 2;	
 			}
@@ -150,7 +157,7 @@ void gfx_dot()
 
 		d1 = VRAM[daddr + row*2];
 		int d2 = VRAM[daddr + row*2 + 1];
-		int shft = 7 - (((scanlineWX-7)+CurX)&7);
+		int shft = 7 - ((CurX-(scanlineWX-7))&7);
 		d1 >>= shft;
 		d1 &= 1;
 		d2 >>= shft;
@@ -198,10 +205,11 @@ void gfx_dot()
 		//if(i == 0) printf("num sprites = %i\n", num_sprites);
 
 		int sprX = OAM[sprites_online[i]*4 + 1];
-		sprX -= 8;
 		int sprY = OAM[sprites_online[i]*4];
+		sprX -= 8;
 		sprY -= 16;
-		if( sprX >= 8 && CurX - sprX < 8 && CurX - sprX >= 0 )
+			
+		if( sprX >= 0 && CurX - sprX < 8 && CurX - sprX >= 0 )
 		{
 			int attr = OAM[sprites_online[i]*4 + 3];
 			int stile = OAM[sprites_online[i]*4 + 2];
@@ -209,7 +217,7 @@ void gfx_dot()
 			int rowoff = LY - sprY;
 			if( attr & 0x40 )
 			{
-				rowoff = ((LCDC & 2) ? 16 : 8) - rowoff;
+				rowoff = ((LCDC & 2) ? 15 : 7) - rowoff;
 			}
 			if( LCDC & 4 )
 			{
@@ -251,10 +259,10 @@ void gfx_find_sprites()
 	{
 		int sprY = OAM[i*4];
 		sprY -= 16;
-		if( sprY > 16 && LY - sprY < sprHeight && LY - sprY >= 0 )
+		if( sprY >= 0 && LY - sprY < sprHeight && LY - sprY >= 0 )
 		{
 			sprites_online[sx++] = i;		
-		}	
+		}
 	}
 	
 	num_sprites = sx;

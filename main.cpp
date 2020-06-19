@@ -29,13 +29,14 @@ void gb_mapping();
 
 int main(int argc, char** args)
 {
-	std::string biosfile = "GBBIOS.BIN";
-	cxxopts::Options options("rombro", "rombro, the GB Emulator");
+	std::string biosfile = "GBBOOT.BIN";
+	cxxopts::Options options("ROMBro", "ROMBro, the GB Emulator");
 	options.add_options()
 		("b,bypass", "Bypass BIOS")
-		("d,debug", "Activate debugger (unimplemented)")
+		//("d,debug", "Activate debugger (unimplemented)")
 		//("i", "Use interpreter rather than the recompiler")
-		("B,bios", "set BIOS file (GBBIOS.BIN by default)", cxxopts::value<std::string>())
+		("B,bootrom", "set bootrom file (GBBOOT.BIN by default)", cxxopts::value<std::string>())
+		("x", "set integer zoom level", cxxopts::value<int>())
 		("f,file", "binary ROM file to emulate", cxxopts::value<std::string>())
 			;
 	options.parse_positional({"file"});
@@ -54,6 +55,11 @@ int main(int argc, char** args)
 	{
 		std::cout << options.help() << std::endl;
 		return 0;
+	}
+	int zfactor = 1;
+	if( result.count("x") )
+	{
+		zfactor = result["x"].as<int>();
 	}
 
 	std::string filname = result["f"].as<std::string>();
@@ -76,8 +82,8 @@ int main(int argc, char** args)
 		FILE* fp = fopen(biosfile.c_str(), "rb");
 		if( ! fp )
 		{
-			printf("error: unable to find BIOS file '%s'.\n", biosfile.c_str());
-			printf("Use -b to attempt to run without it.\n");
+			printf("error: unable to find bootrom file '%s'.\n", biosfile.c_str());
+			printf("Use -b to run without it.\n");
 			return 1;
 		}
 
@@ -138,7 +144,7 @@ int main(int argc, char** args)
 	SDL_SetTextureBlendMode(gfxtex, SDL_BLENDMODE_NONE);
 	glewInit();
 
- 	SDL_Rect rect{ 0,0, 320, 288 };
+ 	SDL_Rect rect{ 0,0, 160*zfactor, 144*zfactor };
 
 	int scanlines = 0;
 	
@@ -165,21 +171,24 @@ int main(int argc, char** args)
 
 		auto stamp1 = std::chrono::system_clock::now();
 
-		for(int i = 0; i < 70224/164; ++i)
+		for(int i = 0; i < 70224; ++i)
 			gb_interpret();
-
-		scanlines++;
-		if( scanlines >= 164 )
-		{
-			scanlines = 0;
-			u8* pixels;
+			
+		//scanlines++;
+		//if( scanlines >= 153 )
+		//{
+			//scanlines = 0;
+			/*u8* pixels;
 			u32 stride;
 			SDL_LockTexture(gfxtex, nullptr,(void**) &pixels,(int*) &stride);
 			
 			memcpy(pixels, screen, 160*144*4);
 		
-			SDL_UnlockTexture(gfxtex);
-		}
+			SDL_UnlockTexture(gfxtex);*/
+		//}
+		
+		while( std::chrono::system_clock::now() - stamp1 < std::chrono::milliseconds(32) );
+
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);

@@ -7,6 +7,7 @@ u8 mem_read8(u16);
 u8 hi_ram[0x80];
 extern u16 PC;
 
+extern bool isColorGB;
 extern bool BIOS_On;
 extern u8 LY;
 extern u8 LYC;
@@ -21,6 +22,14 @@ extern u8 OBP0;
 extern u8 OBP1;
 extern u8* keys;
 extern u8 OAM[0x100];
+extern u32 gbc_bg_palette[0x20];
+extern u32 gbc_spr_palette[0x20];
+
+u8 gbc_bg_pal[0x40];
+u8 gbc_spr_pal[0x40];
+
+u8 gbc_bgpal_index = 0;
+u8 gbc_sprpal_index = 0;
 
 u8 IF = 0;
 u8 IE = 0;
@@ -82,6 +91,19 @@ u8 io_read8(u16 addr)
 	case 0xFF: return IE;
 	default: break;
 	}
+	
+	if( isColorGB )
+	{
+		switch( addr )
+		{
+		case 0x68: return gbc_bgpal_index;
+		case 0x69: return gbc_bg_pal[gbc_bgpal_index&0x1f];
+		case 0x6A: return gbc_sprpal_index;
+		case 0x6B: return gbc_spr_pal[gbc_sprpal_index&0x1f];
+		}
+	}
+	
+	
 	return 0;
 }
 
@@ -102,16 +124,16 @@ void io_write8(u16 addr, u8 val)
 
 	switch( addr )
 	{
-	case 0x00: JPAD = val&0x30; break;
-	case 0x01: serial_data = val; break;
-	case 0x02: serial_ctrl = val; if( serial_ctrl == 0x81 ) { putchar(serial_data); fflush(nullptr); } break;
+	case 0x00: JPAD = val&0x30; return;
+	case 0x01: serial_data = val; return;
+	case 0x02: serial_ctrl = val; if( serial_ctrl == 0x81 ) { putchar(serial_data); fflush(nullptr); } return;
 
-	case 0x04: DIV = 0; break;
-	case 0x05: TCOUNT = val; break;
-	case 0x06: TMA = val; break;
-	case 0x07: TCTRL = val&7; break;
+	case 0x04: DIV = 0; return;
+	case 0x05: TCOUNT = val; return;
+	case 0x06: TMA = val; return;
+	case 0x07: TCTRL = val&7; return;
 
-	case 0x0F: IF = val&0x1F; break;
+	case 0x0F: IF = val&0x1F; return;
 
 	case 0x40: LCDC = val; return;
 	case 0x41: STAT = (STAT&7) | (val&~7); /*printf("STAT set to %x\n", val);*/ return;
@@ -137,8 +159,40 @@ void io_write8(u16 addr, u8 val)
 		}
 		return;
 		
-	case 0xFF: IE = val&0x1F; /*printf("IE set to %x\n", IE);*/ break;
-	}	
+	case 0xFF: IE = val&0x1F; /*printf("IE set to %x\n", IE);*/ return;
+	default: break;
+	}
+	
+	if( isColorGB )
+	{
+		switch( addr )
+		{
+		case 0x68: gbc_bgpal_index = val; return;
+		case 0x69:{
+			gbc_bg_pal[gbc_bgpal_index&0x3F] = val;
+			u32 pi = (gbc_bgpal_index&0x1f)>>1;
+			u16 r1 = gbc_bg_pal[pi<<1] | (gbc_bg_pal[(pi<<1) + 1]<<8);
+			gbc_bg_palette[pi] = ((r1&0x1F)<<24)|(((r1>>5)&0x1F)<<16)|(((r1>>10)&0x1F)<<8);
+			if( gbc_bgpal_index & 0x80 )
+			{
+				gbc_bgpal_index++;
+				gbc_bgpal_index &= 0x9F;
+			}
+			}return;		
+		case 0x6A: gbc_sprpal_index = val; return;
+		case 0x6B:{
+			gbc_spr_pal[gbc_sprpal_index&0x3F] = val;
+			u32 pi = (gbc_sprpal_index&0x1f)>>1;
+			u16 r1 = gbc_spr_pal[pi<<1] | (gbc_spr_pal[(pi<<1) + 1]<<8);
+			gbc_spr_palette[pi] = ((r1&0x1F)<<24)|(((r1>>5)&0x1F)<<16)|(((r1>>10)&0x1F)<<8);
+			if( gbc_sprpal_index & 0x80 )
+			{
+				gbc_sprpal_index++;
+				gbc_sprpal_index &= 0x9F;
+			}
+			}return;		
+		}	
+	}
 
 	return;
 }

@@ -1,13 +1,6 @@
 #include "types.h"
 
 
-
-
-
-
-
-
-
 void snd_cycle()
 {
 

@@ -23,9 +23,12 @@ SDL_Renderer* MainRend;
 bool MainRunning = true;
 std::chrono::system_clock::time_point stamp;
 
+std::string romname;
+
 void gb_reset();
 void gb_interpret();
 void gb_mapping();
+void mem_save();
 void snd_callback(void*, u8*, int);
 
 int main(int argc, char** args)
@@ -37,7 +40,7 @@ int main(int argc, char** args)
 		//("d,debug", "Activate debugger (unimplemented)")
 		//("i", "Use interpreter rather than the recompiler")
 		("B,bootrom", "set bootrom file (GBBOOT.BIN by default)", cxxopts::value<std::string>())
-		("x", "set integer zoom level", cxxopts::value<int>())
+		("x", "set integer zoom level", cxxopts::value<float>())
 		("f,file", "binary ROM file to emulate", cxxopts::value<std::string>())
 			;
 	options.parse_positional({"file"});
@@ -57,17 +60,18 @@ int main(int argc, char** args)
 		std::cout << options.help() << std::endl;
 		return 0;
 	}
-	int zfactor = 2;
+	float zfactor = 2.0f;
 	if( result.count("x") )
 	{
-		zfactor = result["x"].as<int>();
+		zfactor = result["x"].as<float>();
+		if( zfactor < 1.0f ) zfactor = 2.0f;
 	}
 
-	std::string filname = result["f"].as<std::string>();
-	FILE* fp = fopen(filname.c_str(), "rb");
+	romname = result["f"].as<std::string>();
+	FILE* fp = fopen(romname.c_str(), "rb");
 	if( !fp )
 	{
-		printf("error: unable to open file \"%s\"\n", filname.c_str());
+		printf("error: unable to open file \"%s\"\n", romname.c_str());
 		return 1;
 	}
 	fseek(fp, 0, SEEK_END);
@@ -144,7 +148,7 @@ int main(int argc, char** args)
 	SDL_SetTextureBlendMode(gfxtex, SDL_BLENDMODE_NONE);
 	glewInit();
 
- 	SDL_Rect rect{ 0,0, 160*zfactor, 144*zfactor };
+ 	SDL_Rect rect{ 0,0, (int)(160.0f*zfactor), (int)(144.0f*zfactor) };
 
 	int scanlines = 0;
 	
@@ -194,6 +198,8 @@ int main(int argc, char** args)
 		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);
 		SDL_RenderPresent(MainRend);
 	}
+	
+	mem_save();
 
 	SDL_Quit();
 	return 0;

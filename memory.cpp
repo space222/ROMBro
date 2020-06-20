@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <string>
 #include "types.h"
 
 extern u8* ROMfile;
@@ -13,7 +14,7 @@ int gb_rom_banks = 0;
 int gb_ram_type = 0;
 
 u8 WRAM_b0[0x1000];
-u8 WRAM_b1_builtin[0x1000];
+u8 WRAM_b1_builtin[0x7000];
 u8* WRAM_b1 = &WRAM_b1_builtin[0];
 
 u8 EXRAM[128*1024]; // cart ram
@@ -140,6 +141,9 @@ bool hasRTC = false;
 bool isColorGB = false;
 extern bool BIOS_On;
 extern bool emubios;
+extern std::string romname;
+
+std::string savfile;
 
 void gb_mapping()
 {
@@ -152,7 +156,7 @@ void gb_mapping()
 		printf("Running DMG Mode.\n");
 	}
 	
-	printf("ROM type: %x\n", ROMfile[0x147]);
+	printf("ROM type: 0x%x\n", ROMfile[0x147]);
 	
 	switch( ROMfile[0x147] )
 	{
@@ -198,7 +202,7 @@ void gb_mapping()
 	ROM_lo = &ROMfile[0];
 	ROM_hi = &ROMfile[0x4000];
 	
-	printf("RAM type: %i\n", ROMfile[0x149]);
+	printf("RAM type: 0x%x\n", ROMfile[0x149]);
 	switch( ROMfile[0x149] )
 	{
 	case 0: if( gb_mapper == MBC2 ) gb_ram_type = MBC2_RAM; else gb_ram_type = NO_RAM; break;
@@ -209,6 +213,57 @@ void gb_mapping()
 	case 5: gb_ram_type = BANKS8; break;	
 	}
 	
+	savfile = romname;
+	auto pos = romname.rfind('.');
+	if( pos != std::string::npos )
+	{
+		savfile = savfile.substr(0, pos);
+	}
+	savfile += ".sav";
+
+	FILE* fp = fopen(savfile.c_str(), "rb");
+	if( ! fp ) return;
+	int unu = 0;
+	
+	switch( gb_ram_type )
+	{
+	case MBC2_RAM: unu = fread(EXRAM, 1, 512, fp); break;
+	case KB2: unu = fread(EXRAM, 1, 2*1024, fp); break;
+	case BANKS1: unu = fread(EXRAM, 1, 8*1024, fp); break;
+	case BANKS4: unu = fread(EXRAM, 1, 4*8*1024, fp); break;
+	case BANKS8: unu = fread(EXRAM, 1, 8*8*1024, fp); break;
+	case BANKS16:unu= fread(EXRAM, 1, 16*8*1024, fp); break;
+	}
+	
+	fclose(fp);	
 	return;
 }
+
+void mem_save()
+{
+	if( gb_ram_type == NO_RAM ) return;
+	
+	FILE* fp = fopen(savfile.c_str(), "wb");
+	int unu = 0;
+	
+	switch( gb_ram_type )
+	{
+	case MBC2_RAM: unu = fwrite(EXRAM, 1, 512, fp); break;
+	case KB2: unu = fwrite(EXRAM, 1, 2*1024, fp); break;
+	case BANKS1: unu = fwrite(EXRAM, 1, 8*1024, fp); break;
+	case BANKS4: unu = fwrite(EXRAM, 1, 4*8*1024, fp); break;
+	case BANKS8: unu = fwrite(EXRAM, 1, 8*8*1024, fp); break;
+	case BANKS16:unu= fwrite(EXRAM, 1, 16*8*1024, fp); break;
+	}
+
+	fclose(fp);
+	return;
+}
+
+
+
+
+
+
+
 

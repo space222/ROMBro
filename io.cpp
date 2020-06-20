@@ -24,6 +24,10 @@ extern u8* keys;
 extern u8 OAM[0x100];
 extern u32 gbc_bg_palette[0x20];
 extern u32 gbc_spr_palette[0x20];
+extern u8* WRAM_b1;
+extern u8 WRAM_b1_builtin[0x7000];
+extern u8* VRAM;
+extern u8 VRAM_builtin[0x4000];
 
 u8 gbc_bg_pal[0x40];
 u8 gbc_spr_pal[0x40];
@@ -38,6 +42,9 @@ u8 TCOUNT = 0;
 u8 TMA = 0;
 u8 TCTRL = 0;
 u8 JPAD = 0xc0;
+
+u8 WRAMBank = 0;
+u8 VRAMBank = 0;
 
 u8 io_read8(u16 addr)
 {
@@ -96,10 +103,14 @@ u8 io_read8(u16 addr)
 	{
 		switch( addr )
 		{
+		case 0x4F: return VRAMBank;
+		
 		case 0x68: return gbc_bgpal_index;
 		case 0x69: return gbc_bg_pal[gbc_bgpal_index&0x1f];
 		case 0x6A: return gbc_sprpal_index;
 		case 0x6B: return gbc_spr_pal[gbc_sprpal_index&0x1f];
+		
+		case 0x70: return WRAMBank;
 		}
 	}
 	
@@ -167,6 +178,11 @@ void io_write8(u16 addr, u8 val)
 	{
 		switch( addr )
 		{
+		case 0x4F: 
+			val &= 1;
+			VRAMBank = 0xFE | val;
+			VRAM = &VRAM_builtin[0x2000 * val];
+			return;
 		case 0x68: gbc_bgpal_index = val; return;
 		case 0x69:{
 			gbc_bg_pal[gbc_bgpal_index&0x3F] = val;
@@ -190,7 +206,15 @@ void io_write8(u16 addr, u8 val)
 				gbc_sprpal_index++;
 				gbc_sprpal_index &= 0x9F;
 			}
-			}return;		
+			}return;
+			
+		case 0x70:
+			val &= 7;
+			WRAMBank = val;
+			if( val == 0 ) val = 1;
+			val--;
+			WRAM_b1 = &WRAM_b1_builtin[val*4096];
+			return;		
 		}	
 	}
 

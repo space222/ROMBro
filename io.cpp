@@ -199,25 +199,25 @@ void io_write8(u16 addr, u8 val)
 		case 0x68: gbc_bgpal_index = val; return;
 		case 0x69:{
 			gbc_bg_pal[gbc_bgpal_index&0x3F] = val;
-			u32 pi = (gbc_bgpal_index&0x1f)>>1;
+			u32 pi = (gbc_bgpal_index&0x3F)>>1;
 			u16 r1 = gbc_bg_pal[pi<<1] | (gbc_bg_pal[(pi<<1) + 1]<<8);
-			gbc_bg_palette[pi] = ((r1&0x1F)<<24)|(((r1>>5)&0x1F)<<16)|(((r1>>10)&0x1F)<<8);
+			gbc_bg_palette[pi] = ((r1&0x1F)<<27)|(((r1>>5)&0x1F)<<19)|(((r1>>10)&0x1F)<<11);
 			if( gbc_bgpal_index & 0x80 )
 			{
 				gbc_bgpal_index++;
-				gbc_bgpal_index &= 0x9F;
+				gbc_bgpal_index &= 0xBF;
 			}
 			}return;		
 		case 0x6A: gbc_sprpal_index = val; return;
 		case 0x6B:{
 			gbc_spr_pal[gbc_sprpal_index&0x3F] = val;
-			u32 pi = (gbc_sprpal_index&0x1f)>>1;
+			u32 pi = (gbc_sprpal_index&0x3F)>>1;
 			u16 r1 = gbc_spr_pal[pi<<1] | (gbc_spr_pal[(pi<<1) + 1]<<8);
-			gbc_spr_palette[pi] = ((r1&0x1F)<<24)|(((r1>>5)&0x1F)<<16)|(((r1>>10)&0x1F)<<8);
+			gbc_spr_palette[pi] = ((r1&0x1F)<<27)|(((r1>>5)&0x1F)<<19)|(((r1>>10)&0x1F)<<11);
 			if( gbc_sprpal_index & 0x80 )
 			{
 				gbc_sprpal_index++;
-				gbc_sprpal_index &= 0x9F;
+				gbc_sprpal_index &= 0xBF;
 			}
 			}return;
 			

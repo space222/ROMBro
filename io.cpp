@@ -46,6 +46,9 @@ u8 JPAD = 0xc0;
 u8 WRAMBank = 0;
 u8 VRAMBank = 0;
 
+void snd_write8(u16, u8);
+u8 snd_read8(u16);
+
 u8 io_read8(u16 addr)
 {
 	addr &= 0xFF;
@@ -55,6 +58,11 @@ u8 io_read8(u16 addr)
 	if( addr > 0x7F && addr != 0xFF )
 	{
 		return hi_ram[addr&0x7f];
+	}
+	
+	if( addr >= 0x10 && addr < 0x40 )
+	{
+		return snd_read8(addr);
 	}
 
 	switch( addr )
@@ -80,6 +88,7 @@ u8 io_read8(u16 addr)
 	case 0x07: return TCTRL;
 		
 	case 0x0F: return IF;
+	
 	case 0x40: return LCDC;
 	case 0x41: return STAT;
 	case 0x42: return SCY;
@@ -131,7 +140,11 @@ void io_write8(u16 addr, u8 val)
 		return;
 	}
 
-	//printf("IO write @$%x = $%x\n", addr, val);
+	if( addr >= 0x10 && addr < 0x40 )
+	{
+		snd_write8(addr, val);
+		return;
+	}
 
 	switch( addr )
 	{

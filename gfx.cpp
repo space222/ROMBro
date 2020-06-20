@@ -10,6 +10,9 @@ extern u8 IF;
 extern u8 IE;
 extern bool isColorGB;
 
+u8 mem_read8(u16);
+void mem_write8(u16, u8);
+
 u8 LCDC = 0;
 u8 STAT = 2;
 u8 LYC = 40;
@@ -250,6 +253,11 @@ void gfx_dot()
 	return;
 }
 
+extern u16 gbc_hdma_src;
+extern u16 gbc_hdma_dest;
+extern u8 gbc_hdma_ctrl;
+extern bool gbc_hdma_active;
+
 void gfx_dot_color()
 {
 	switch( STAT & 3 )
@@ -329,6 +337,25 @@ void gfx_dot_color()
 			{
 				CurX = 0;
 				STAT = (STAT&~3) | 0;
+				
+				if( gbc_hdma_active )
+				{
+					int rem = gbc_hdma_ctrl & 0x7f;
+					rem--;
+					for(int i = 0; i < 0x10; ++i)
+					{
+						mem_write8(0x8000 + gbc_hdma_dest++, mem_read8(gbc_hdma_src++));					
+					}				
+					if( rem < 0 )
+					{
+						gbc_hdma_ctrl = 0x7f;
+						gbc_hdma_active = false;
+					} else {
+						gbc_hdma_ctrl &= ~0x7f;
+						gbc_hdma_ctrl |= rem;
+					}
+					
+				}
 			}
 			current_dot++;
 			return;

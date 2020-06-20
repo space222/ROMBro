@@ -3,6 +3,7 @@
 #include "types.h"
 
 u8 mem_read8(u16);
+void mem_write8(u16, u8);
 
 u8 hi_ram[0x80];
 extern u16 PC;
@@ -28,6 +29,11 @@ extern u8* WRAM_b1;
 extern u8 WRAM_b1_builtin[0x7000];
 extern u8* VRAM;
 extern u8 VRAM_builtin[0x4000];
+
+u16 gbc_hdma_src = 0;
+u16 gbc_hdma_dest = 0;
+u8 gbc_hdma_ctrl = 0;
+bool gbc_hdma_active = false;
 
 u8 gbc_bg_pal[0x40];
 u8 gbc_spr_pal[0x40];
@@ -114,6 +120,12 @@ u8 io_read8(u16 addr)
 		{
 		case 0x4F: return VRAMBank;
 		
+		case 0x51: return gbc_hdma_src>>8;
+		case 0x52: return gbc_hdma_src;
+		case 0x53: return gbc_hdma_dest>>8;
+		case 0x54: return gbc_hdma_dest;
+		case 0x55: return gbc_hdma_ctrl;
+		
 		case 0x68: return gbc_bgpal_index;
 		case 0x69: return gbc_bg_pal[gbc_bgpal_index&0x1f];
 		case 0x6A: return gbc_sprpal_index;
@@ -196,6 +208,33 @@ void io_write8(u16 addr, u8 val)
 			VRAMBank = 0xFE | val;
 			VRAM = &VRAM_builtin[0x2000 * val];
 			return;
+			
+		case 0x51: gbc_hdma_src &= 0xff; gbc_hdma_src |= val << 8; break;
+		case 0x52: gbc_hdma_src &=~0xff; gbc_hdma_src |= val & 0xf0; break;
+		case 0x53: gbc_hdma_dest&= 0xff; gbc_hdma_dest|= (val&0x1f) << 8; break;
+		case 0x54: gbc_hdma_dest&=~0xff; gbc_hdma_dest|= val & 0xf0; break;
+		case 0x55:
+			if( gbc_hdma_active && !(val & 0x80) )
+			{
+				gbc_hdma_active = false;
+				gbc_hdma_ctrl &= 0x7f;
+				return;
+			}
+			gbc_hdma_ctrl = val;
+			if( !(val & 0x80) )
+			{
+				int num = val;
+				num *= 0x10;
+				for(int i = 0; i < num; ++i)
+				{
+					mem_write8(0x8000 + gbc_hdma_dest++, mem_read8(gbc_hdma_src++));				
+				}
+				gbc_hdma_ctrl = 0xff;
+			} else {
+				gbc_hdma_active = true;
+			}
+			break;
+			
 		case 0x68: gbc_bgpal_index = val; return;
 		case 0x69:{
 			gbc_bg_pal[gbc_bgpal_index&0x3F] = val;

@@ -1,15 +1,12 @@
 ROMBro Todo List
 -------------------
 
-There's not many more essential items to having full(ish) [original] gameboy emulation,
-so there are now non-numbered tasks:
+Since both original and color gameboy emulation is nearly done
+(minus sound and various accuracy improvements), tasks are no longer
+numbered.
 
+- Figure out why super mario deluxe has missing graphics.
 - Sound
-- Only load bootrom after the type (orig. or color) of rom is known.
-- More and better MBC support (RAM enable/disable, RTC regs, etc)
-
-After that, there's just the Color features.
-
-
-
+- controller/joystick input
+- Serial comms over internet?
 

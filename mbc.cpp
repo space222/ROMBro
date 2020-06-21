@@ -31,6 +31,19 @@ void mbc_write8(u16 addr, u8 val)
 		return;		
 	}
 	
+	if( gb_mapper == MBC2 )
+	{
+		if( addr >= 0x2000 && addr < 0x4000 )
+		{
+			val &= 0xf;
+			if( val == 0 ) val = 1;
+			bank_num = val;		
+		}	
+	
+		ROM_hi = &ROMfile[bank_num*16*1024];
+		return;
+	}
+	
 	if( gb_mapper == MBC3 )
 	{
 		if( addr >= 0x2000 && addr < 0x4000 )
@@ -65,7 +78,8 @@ void mbc_write8(u16 addr, u8 val)
 			exram_bank_offset = (val&0xF)*8*1024;	
 		}
 	
-		ROM_hi = &ROMfile[bank_num*16*1024];		
+		ROM_hi = &ROMfile[bank_num*16*1024];
+		return;	
 	}
 
 	return;

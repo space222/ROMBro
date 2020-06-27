@@ -59,6 +59,7 @@ void gfx_dot()
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
+				if( STAT & 0x20 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
 				STAT = (STAT&~3) | 1;
 			} else {
 				if( LY == scanlineLYC )
@@ -272,6 +273,7 @@ void gfx_dot_color()
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
+				if( STAT & 0x20 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
 				STAT = (STAT&~3) | 1;
 			} else {
 				if( LY == scanlineLYC )
@@ -345,7 +347,7 @@ void gfx_dot_color()
 					for(int i = 0; i < 0x10; ++i)
 					{
 						mem_write8(0x8000 + gbc_hdma_dest++, mem_read8(gbc_hdma_src++));					
-					}				
+					}			
 					if( rem < 0 )
 					{
 						gbc_hdma_ctrl = 0x7f;
@@ -354,7 +356,6 @@ void gfx_dot_color()
 						gbc_hdma_ctrl &= ~0x7f;
 						gbc_hdma_ctrl |= rem;
 					}
-					
 				}
 			}
 			current_dot++;
@@ -369,6 +370,7 @@ void gfx_dot_color()
 	}
 	
 	int d1 = 0; // needed outside the if, so sprites can only be behind non-zero pixels
+	int bgattr = 0;
 	
 	if( (LCDC & 0x20) && (LY >= scanlineWY) && (CurX >= (scanlineWX-7)) )
 	{
@@ -377,6 +379,7 @@ void gfx_dot_color()
 		taddr += st;
 		int tileno = VRAM_builtin[taddr];
 		int attr = VRAM_builtin[0x2000 + taddr];
+		bgattr = attr;
 		
 		int daddr = 0;
 		if( !(LCDC & 0x10) )
@@ -406,7 +409,7 @@ void gfx_dot_color()
 		int pal = (attr&7)*4;
 		screen[LY*160 + CurX] = gbc_bg_palette[pal + d1];		
 	} else {
-		int scrollvalue = (scanlineSCY + (int)LY);
+		int scrollvalue = (scanlineSCY + LY);
 		
 		int st = (32 * ((scrollvalue>>3)&0x1F)) + (((scanlineSCX+CurX)>>3) & 0x1F);
 		int taddr = (LCDC&8) ? 0x1C00 : 0x1800;
@@ -428,8 +431,8 @@ void gfx_dot_color()
 		daddr += tileno*16;
 
 		scrollvalue &= 7;
+		if( (attr & 0x40) ) scrollvalue = 7 - scrollvalue;
 		scrollvalue <<= 1;
-		if( attr & 0x40 ) scrollvalue = 7 - scrollvalue;
 
 		d1 = (attr&8) ? VRAM_builtin[0x2000 + daddr + scrollvalue] : VRAM_builtin[daddr + scrollvalue];
 		int d2 = (attr&8) ? VRAM_builtin[0x2000 + daddr + scrollvalue] : VRAM_builtin[daddr + scrollvalue + 1];
@@ -484,8 +487,11 @@ void gfx_dot_color()
 			sd2 &= 1;
 			sd1 = (sd2<<1)|sd1;
 			int pal = (attr & 7) * 4;
-			if( sd1 && !((attr&0x80) && d1) ) screen[LY*160 + CurX] = gbc_spr_palette[pal + sd1];
-			if( sd1 ) break;
+			if( sd1 )
+			{
+				if( !d1 || !(LCDC&1) || ( !(bgattr&0x80) && !(attr&0x80) ) ) screen[LY*160 + CurX] = gbc_spr_palette[pal + sd1];
+				break;
+			}
 		}	
 	}
 

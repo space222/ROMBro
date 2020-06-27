@@ -14,6 +14,7 @@ bool emubios = true;
 extern bool BIOS_On;
 extern u8 BIOS[0x100];
 extern u32 screen[160*144];
+extern int total_cycles;
 
 u8* keys;
 SDL_Window* MainWindow;
@@ -21,7 +22,6 @@ SDL_Surface* MainSurf;
 SDL_Texture* gfxtex;
 SDL_Renderer* MainRend;
 bool MainRunning = true;
-std::chrono::system_clock::time_point stamp;
 
 std::string romname;
 
@@ -30,6 +30,9 @@ void gb_interpret();
 void gb_mapping();
 void mem_save();
 void snd_callback(void*, u8*, int);
+
+int controllers_connected = 0;
+SDL_Joystick* controller0 = nullptr;
 
 int main(int argc, char** args)
 {
@@ -152,8 +155,9 @@ int main(int argc, char** args)
 
 	int scanlines = 0;
 	
-	stamp = std::chrono::system_clock::now();
-	
+	glViewport(0, 0, 1200, 720);
+	glClearColor(0.4f, 0.5f, 0.6f, 0);
+
 	while( MainRunning )
 	{
 		SDL_Event event;
@@ -161,6 +165,14 @@ int main(int argc, char** args)
 		{
 			switch( event.type )
 			{
+			case SDL_JOYDEVICEADDED:
+				if( !controllers_connected ) controller0 = SDL_JoystickOpen(controllers_connected);
+				controllers_connected++;
+				break;
+			case SDL_JOYDEVICEREMOVED:
+				controllers_connected--;
+				if( !controllers_connected ) controller0 = nullptr;
+				break;
 			case SDL_QUIT:
 				MainRunning = false;
 				break;
@@ -169,30 +181,13 @@ int main(int argc, char** args)
 
 		keys =(u8*) SDL_GetKeyboardState(NULL);
 	
-		glViewport(0, 0, 1200, 720);
-		glClearColor(0.4f, 0.5f, 0.6f, 0);
-		//glClear(GL_COLOR_BUFFER_BIT);
-
 		auto stamp1 = std::chrono::system_clock::now();
 
-		for(int i = 0; i < 70224; ++i)
-			gb_interpret();
+		while( total_cycles < 70224 ) gb_interpret();
 			
-		//scanlines++;
-		//if( scanlines >= 153 )
-		//{
-			//scanlines = 0;
-			/*u8* pixels;
-			u32 stride;
-			SDL_LockTexture(gfxtex, nullptr,(void**) &pixels,(int*) &stride);
+		total_cycles -= 70224;
 			
-			memcpy(pixels, screen, 160*144*4);
-		
-			SDL_UnlockTexture(gfxtex);*/
-		//}
-		
-		while( std::chrono::system_clock::now() - stamp1 < std::chrono::milliseconds(32) );
-
+		while( std::chrono::system_clock::now() - stamp1 < std::chrono::milliseconds(8) );
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);

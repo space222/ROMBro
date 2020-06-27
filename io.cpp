@@ -8,6 +8,8 @@ void mem_write8(u16, u8);
 u8 hi_ram[0x80];
 extern u16 PC;
 
+extern SDL_Joystick* controller0;
+
 extern bool isColorGB;
 extern bool BIOS_On;
 extern u8 LY;
@@ -76,13 +78,27 @@ u8 io_read8(u16 addr)
 	case 0x00: 
 		if( JPAD & 0x10 )
 		{
-			u8 K = (keys[SDL_SCANCODE_S]<<3)|(keys[SDL_SCANCODE_A]<<2) 
-				| (keys[SDL_SCANCODE_X]<<1) | keys[SDL_SCANCODE_Z];
+			u8 K = 0;
+			if( !controller0 )
+			{
+				K = (keys[SDL_SCANCODE_S]<<3)|(keys[SDL_SCANCODE_A]<<2) 
+					| (keys[SDL_SCANCODE_X]<<1) | keys[SDL_SCANCODE_Z];	
+			} else {
+				K = (SDL_JoystickGetButton(controller0, 0)<<3)|(SDL_JoystickGetButton(controller0, 1)<<2)
+					|(SDL_JoystickGetButton(controller0, 2)<<1)|SDL_JoystickGetButton(controller0, 3);
+			}
 			K ^= 0xF;
 			return JPAD|K;
 		} else if( JPAD & 0x20 ) {
-			u8 K = (keys[SDL_SCANCODE_DOWN]<<3)|(keys[SDL_SCANCODE_UP]<<2)
-				| (keys[SDL_SCANCODE_LEFT]<<1)|keys[SDL_SCANCODE_RIGHT];
+			u8 K = 0;
+			if( !controller0 )
+			{
+				K = (keys[SDL_SCANCODE_DOWN]<<3)|(keys[SDL_SCANCODE_UP]<<2)
+					| (keys[SDL_SCANCODE_LEFT]<<1)|keys[SDL_SCANCODE_RIGHT];
+			} else {
+				K = (SDL_JoystickGetButton(controller0, 4)<<3)|(SDL_JoystickGetButton(controller0, 5)<<2)
+					|(SDL_JoystickGetButton(controller0, 6)<<1)|SDL_JoystickGetButton(controller0, 7);
+			}
 			K ^= 0xF;
 			return JPAD|K;
 		}
@@ -223,7 +239,7 @@ void io_write8(u16 addr, u8 val)
 			gbc_hdma_ctrl = val;
 			if( !(val & 0x80) )
 			{
-				int num = val;
+				int num = val + 1;
 				num *= 0x10;
 				for(int i = 0; i < num; ++i)
 				{
@@ -266,7 +282,7 @@ void io_write8(u16 addr, u8 val)
 			if( val == 0 ) val = 1;
 			val--;
 			WRAM_b1 = &WRAM_b1_builtin[val*4096];
-			return;		
+			return;
 		}	
 	}
 

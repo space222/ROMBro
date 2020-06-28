@@ -237,8 +237,9 @@ void io_write8(u16 addr, u8 val)
 				return;
 			}
 			gbc_hdma_ctrl = val;
-			if( !(val & 0x80) )
+			if( !(val & 0x80) && gbc_hdma_src )
 			{
+				//printf("DMA! from %x to %x, %i bytes!\n", gbc_hdma_src, gbc_hdma_dest, (val + 1) * 0x10);
 				int num = val + 1;
 				num *= 0x10;
 				for(int i = 0; i < num; ++i)

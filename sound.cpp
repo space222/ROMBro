@@ -13,10 +13,47 @@ int timer_reload[4] = {0};
 u8 NR[55];
 u8 WAVRAM[0x10];
 
+const int CPUFreq = 4194304;
+const int FrameHz = 512;
+const int frame_ctr_reload = CPUFreq/FrameHz;
+int frame_counter = frame_ctr_reload;
+int frame_seq = 7;
+
+void frame_clock()
+{
+	frame_seq = (frame_seq+1) & 7;
+
+	switch( frame_seq )
+	{
+	case 1:
+	case 3:
+	case 5:
+		break; // steps 1, 3, and 5 don't do anything
+	case 4:
+	case 0: 
+		length_clock();
+		break;
+	case 6:
+	case 2:
+		length_clock();
+		sweep_clock();
+		break;
+	case 7:
+		envelope_clock();
+		break;
+	}
+
+	return;
+}
+
 void snd_cycle()
 {
-
-
+	frame_counter--;
+	if( frame_counter == 0 )
+	{
+		frame_counter = frame_ctr_reload;
+		frame_clock();
+	}
 
 
 

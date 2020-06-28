@@ -33,10 +33,10 @@ void mbc_write8(u16 addr, u8 val)
 	
 	if( gb_mapper == MBC2 )
 	{
-		if( addr >= 0x2000 && addr < 0x4000 )
+		if( addr >= 0x2000 && addr < 0x4000 && (addr&0x100) )
 		{
 			val &= 0xf;
-			if( val == 0 ) val = 1;
+			//if( val == 0 ) val = 1; //?
 			bank_num = val;		
 		}	
 	

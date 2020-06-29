@@ -5,14 +5,16 @@ Since both original and color gameboy emulation is nearly done
 (minus sound and various accuracy improvements), tasks are no longer
 numbered.
 
-- there's still ppu features unimplemented (HBlank IRQ, CGB background/OAM priority. etc)
+- there's still problems that range from minor graphical glitches to games that don't run at all
 - Sound
 - controller/joystick input
 - Serial comms over internet?
 
 Bugs:
 
-- Figure out why super mario deluxe has wrong and missing background tiles and sprites.
+- Figure out why super mario deluxe has "shifted" graphics on copyright screen, and wrong attributes for pipes.
 - Pokemon Trading Card game doesn't run at all
+- Pokemon Crystal misses the eye dot on the running creature on the title screen
+
 
 

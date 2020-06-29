@@ -20,7 +20,7 @@ extern u8 TMA;
 
 int tcycle_counts[] = { 1024, 16, 64, 256 };
 
-int cycles_until_div = 256;
+int cycles_until_div = 0;
 int timer_cycle_count = 0;
 
 int total_cycles = 0;
@@ -30,10 +30,10 @@ void system_cycles(int c)
 	total_cycles += c;
 	gfx_cycles(c);
 
-	cycles_until_div -= c;
-	if( cycles_until_div <= 0 )
+	cycles_until_div += c;
+	if( cycles_until_div >= 256 )
 	{
-		cycles_until_div += 256;
+		cycles_until_div -= 256;
 		DIV++;
 	}
 	

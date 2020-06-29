@@ -19,6 +19,24 @@ const int frame_ctr_reload = CPUFreq/FrameHz;
 int frame_counter = frame_ctr_reload;
 int frame_seq = 7;
 
+void length_clock()
+{
+
+	return;
+}
+
+void sweep_clock()
+{
+
+	return;
+}
+
+void envelope_clock()
+{
+
+	return;
+}
+
 void frame_clock()
 {
 	frame_seq = (frame_seq+1) & 7;

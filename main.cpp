@@ -153,10 +153,9 @@ int main(int argc, char** args)
 
  	SDL_Rect rect{ 0,0, (int)(160.0f*zfactor), (int)(144.0f*zfactor) };
 
-	int scanlines = 0;
-	
 	glViewport(0, 0, 1200, 720);
 	glClearColor(0.4f, 0.5f, 0.6f, 0);
+	keys =(u8*) SDL_GetKeyboardState(NULL);
 
 	while( MainRunning )
 	{
@@ -179,15 +178,13 @@ int main(int argc, char** args)
 			}
 		}
 
-		keys =(u8*) SDL_GetKeyboardState(NULL);
-	
-		auto stamp1 = std::chrono::system_clock::now();
+		auto stamp1 = std::chrono::steady_clock::now();
 
 		while( total_cycles < 70224 ) gb_interpret();
 			
 		total_cycles -= 70224;
 			
-		while( std::chrono::system_clock::now() - stamp1 < std::chrono::milliseconds(8) );
+		while( std::chrono::steady_clock::now() - stamp1 < std::chrono::milliseconds(16) );
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);

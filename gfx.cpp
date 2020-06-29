@@ -59,7 +59,7 @@ void gfx_dot()
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
-				if( STAT & 0x20 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
+				if( STAT & 0x10 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
 				STAT = (STAT&~3) | 1;
 			} else {
 				if( LY == scanlineLYC )
@@ -119,14 +119,16 @@ void gfx_dot()
 		}
 		return;
 	case 3: // screen drawing
+		current_dot++;		
 		if( CurX > 159 )
 		{
-			if( current_dot == end_mode_3 )
+			if( current_dot >= end_mode_3 )
 			{
+				if( STAT & 0x20 ) IF |= 2;
+
 				CurX = 0;
 				STAT = (STAT&~3) | 0;
 			}
-			current_dot++;
 			return;
 		}
 		break; // actual dot draw is the rest of function		
@@ -269,11 +271,11 @@ void gfx_dot_color()
 		{
 			current_dot = 0;
 			LY++;
-			//if( LY == 154 ) LY = 0;
+			
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
-				if( STAT & 0x20 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
+				if( STAT & 0x10 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
 				STAT = (STAT&~3) | 1;
 			} else {
 				if( LY == scanlineLYC )
@@ -333,12 +335,15 @@ void gfx_dot_color()
 		}
 		return;
 	case 3: // screen drawing
+		current_dot++;
 		if( CurX > 159 )
 		{
-			if( current_dot == end_mode_3 )
+			if( current_dot >= end_mode_3 )
 			{
 				CurX = 0;
 				STAT = (STAT&~3) | 0;
+				
+				if( STAT & 0x20 ) IF |= 2;
 				
 				if( gbc_hdma_active )
 				{
@@ -358,7 +363,6 @@ void gfx_dot_color()
 					}
 				}
 			}
-			current_dot++;
 			return;
 		}
 		break; // actual dot draw is the rest of function		

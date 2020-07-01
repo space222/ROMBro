@@ -186,7 +186,7 @@ int main(int argc, char** args)
 			
 		total_cycles -= 70224;
 			
-		while( std::chrono::steady_clock::now() - stamp1 < std::chrono::milliseconds(16) );
+		while( SDL_GetQueuedAudioSize(AudioDev) );// std::chrono::steady_clock::now() - stamp1 < std::chrono::milliseconds(16) );
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 		SDL_RenderCopy(MainRend, gfxtex, nullptr, &rect);

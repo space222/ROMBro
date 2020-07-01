@@ -31,6 +31,8 @@ int frame_seq = 7;
 int duty_pos[5] = {0};
 u8 duty[] = { 0,0,0,0,0,0,0,0xF0, 0xF0,0,0,0,0,0,0,0xF0, 0xF0,0,0,0,0,0xF0,0xF0,0xF0, 0,0xF0,0xF0,0xF0,0xF0,0xF0,0xF0,0 };
 
+void noise_run();
+
 void length_clock()
 {
 	for(int i = 1; i < 5; ++i)
@@ -54,8 +56,9 @@ void sweep_clock()
 
 void envelope_clock()
 {
-	if( NR[12] & 7 )
+	if( chan_envelope[1] )
 	{
+		chan_envelope[1]--;
 		u8 vol = NR[12]>>4;
 		if( NR[12] & 8 )
 		{
@@ -64,11 +67,11 @@ void envelope_clock()
 			if( vol > 0 ) vol--;
 		}
 		NR[12] &= 0xF; NR[12] |= vol<<4;
-		NR[12] = (NR[12]&~7) | ((NR[12]-1)&7);
 	}
 	
-	if( NR[22] & 7 )
+	if( chan_envelope[2] )
 	{
+		chan_envelope[2]--;
 		u8 vol = NR[22]>>4;
 		if( NR[22] & 8 )
 		{
@@ -77,11 +80,11 @@ void envelope_clock()
 			if( vol > 0 ) vol--;
 		}
 		NR[22] &= 0xF; NR[22] |= vol<<4;
-		NR[22] = (NR[22]&~7) | ((NR[22]-1)&7);
 	}
 	
-	if( NR[42] & 7 )
+	if( chan_envelope[4] )
 	{
+		chan_envelope[4]--;
 		u8 vol = NR[42]>>4;
 		if( NR[42] & 8 )
 		{
@@ -90,7 +93,6 @@ void envelope_clock()
 			if( vol > 0 ) vol--;
 		}
 		NR[42] &= 0xF; NR[42] |= vol<<4;
-		NR[42] = (NR[42]&~7) | ((NR[42]+1)&7);
 	}
 	
 	return;
@@ -167,6 +169,13 @@ void snd_cycle()
 		duty_pos[3] = (duty_pos[3]+1) & 0xf;
 	}
 	
+	timer[4]--;
+	if( timer[4] == 0 )
+	{
+		timer[4] = timer_reload[4];
+		noise_run();
+	}
+	
 	if( chan_enabled[1] )
 	{
 		chan_accum[1] += (duty[(NR[11]>>6)*8 + duty_pos[1]] & NR[12]);
@@ -177,9 +186,13 @@ void snd_cycle()
 	}
 	if( chan_enabled[3] )
 	{
-		u8 temp = WAVRAM[duty_pos[3]>>1];
+		u32 temp = (u32)(u8)WAVRAM[duty_pos[3]>>1];
 		if( duty_pos[3] & 1 ) temp <<= 4; else temp &= 0xF0;
-		chan_accum[3] += temp;
+		chan_accum[3] += (temp & 0xF0);
+	}
+	if( chan_enabled[4] )
+	{
+		chan_accum[4] += (noise_lfsr & 1) ? 0 : (NR[42] & 0xF0);
 	}
 	
 	accum_counter++;
@@ -187,7 +200,7 @@ void snd_cycle()
 	{
 		accum_counter = 0;
 		for(int i = 1; i < 5; ++i) chan_accum[i] /= accum_max;
-		left_buffer[left_write_pos++] = ((chan_accum[1]+chan_accum[2]+chan_accum[3])/3.0f)/255.0f;
+		left_buffer[left_write_pos++] = ((chan_accum[1]+chan_accum[2]+chan_accum[3]+chan_accum[4])/4.0f)/255.0f;
 		for(int i = 1; i < 5; ++i) chan_accum[i] = 0;
 		
 		if( left_write_pos == 1024 )
@@ -225,12 +238,26 @@ void snd_callback(void*, u8* stream, int len)
 	return;
 }
 
+void noise_run()
+{
+	u32 nv = ((noise_lfsr>>1) ^ (noise_lfsr)) & 1;
+	noise_lfsr >>= 1;
+	noise_lfsr |= nv<<15;
+	if( NR[43] & 8 )
+	{
+		noise_lfsr &= ~(1<<6);
+		noise_lfsr |= (nv<<6);
+	}
+	return;
+}
+
 void chan1_trigger()
 {
 	chan_enabled[1] = 1;
 	if( chan_length[1] == 0 ) chan_length[1] = 64;
 	timer_reload[1] = ((NR[14]&7) << 8) | NR[13];
 	timer[1] = timer_reload[1] = ((2048-timer_reload[1])*4);
+	chan_envelope[1] = (NR[12]&7) ? (NR[12]&7) : 8;
 	return;
 }
 
@@ -240,6 +267,7 @@ void chan2_trigger()
 	if( chan_length[2] == 0 ) chan_length[2] = 64;
 	timer_reload[2] = ((NR[24]&7) << 8) | NR[23];
 	timer[2] = timer_reload[2] = ((2048-timer_reload[2])*4);
+	chan_envelope[2] = (NR[22]&7) ? (NR[22]&7) : 8;
 	return;
 }
 
@@ -257,6 +285,12 @@ void chan4_trigger()
 {
 	chan_enabled[4] = 1;
 	if( chan_length[4] == 0 ) chan_length[4] = 64;
+	chan_envelope[4] = (NR[42]&7) ? (NR[42]&7) : 8;
+	
+	timer_reload[4] = (NR[43]&7) ? (NR[43]&7)*16 : 8;
+	timer_reload[4] <<= (NR[43]>>4)+1;  // ??, I found a doc that the above is the actual number of 4MHz clocks to use as period,
+					 // but no actual idea what to do with the shift.
+	timer[4] = timer_reload[4];
 	noise_lfsr = 0x7FFF;
 	return;
 }
@@ -271,33 +305,45 @@ void snd_write8(u16 addr, u8 val)
 		return;
 	}
 	
+	if( addr == 0x26 )
+	{
+		NR[52] = val;
+		if( !(NR[52] & 0x80) )
+		{
+			for(int i = 1; i < 5; ++i) chan_enabled[i] = 0;
+		}
+		return;
+	}
+	
+	if( ! (NR[52] & 0x80) ) return;
+	
 	switch( addr )
 	{
 	case 0x10: NR[10] = val; break;
 	case 0x11: NR[11] = val; chan_length[1] = 64-(val&0x3f); break;
 	case 0x12: NR[12] = val; break;
 	case 0x13: NR[13] = val; break;
-	case 0x14: NR[14] = val; if( val & 0x80 ) chan1_trigger(); else chan_enabled[1] = 0; break;
+	case 0x14: NR[14] = val; if( val & 0x80 ) chan1_trigger(); break;
 	
 	case 0x16: NR[21] = val; chan_length[2] = 64-(val&0x3f); break;
 	case 0x17: NR[22] = val; break;
 	case 0x18: NR[23] = val; break;
-	case 0x19: NR[24] = val; if( val & 0x80 ) chan2_trigger(); else chan_enabled[2] = 0; break;
+	case 0x19: NR[24] = val; if( val & 0x80 ) chan2_trigger(); break;
 	
 	case 0x1A: NR[30] = val; break;
 	case 0x1B: NR[31] = val; chan_length[3] = 256-val; break;
 	case 0x1C: NR[32] = val; break;
 	case 0x1D: NR[33] = val; break;
-	case 0x1E: NR[34] = val; if( val & 0x80 ) chan3_trigger(); else chan_enabled[3] = 0; break;
+	case 0x1E: NR[34] = val; if( val & 0x80 ) chan3_trigger(); break;
 	
 	case 0x20: NR[41] = val; chan_length[4] = 64-(val&0x3f); break;
 	case 0x21: NR[42] = val; break;
 	case 0x22: NR[43] = val; break;
-	case 0x23: NR[44] = val; if( val & 0x80 ) chan4_trigger(); else chan_enabled[4] = 0; break;
+	case 0x23: NR[44] = val; if( val & 0x80 ) chan4_trigger(); break;
 	
 	case 0x24: NR[50] = val; break;
 	case 0x25: NR[51] = val; break;
-	case 0x26: NR[52] = val; break;
+	//case 0x26: NR[52] = val; break;
 	default: break;
 	}
 	return;

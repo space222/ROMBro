@@ -41,7 +41,7 @@ void system_cycles(int c)
 	if( TCTRL & 4 )
 	{
 		timer_cycle_count += c;
-		if( timer_cycle_count > tcycle_counts[TCTRL&3] )
+		if( timer_cycle_count >= tcycle_counts[TCTRL&3] )
 		{
 			timer_cycle_count -= tcycle_counts[TCTRL&3];
 			TCOUNT++;

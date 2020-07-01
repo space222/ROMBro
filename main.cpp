@@ -21,6 +21,8 @@ SDL_Window* MainWindow;
 SDL_Surface* MainSurf;
 SDL_Texture* gfxtex;
 SDL_Renderer* MainRend;
+SDL_AudioDeviceID AudioDev;
+
 bool MainRunning = true;
 
 std::string romname;
@@ -106,13 +108,12 @@ int main(int argc, char** args)
 
 	SDL_AudioSpec want, have;
 	SDL_AudioDeviceID dev;
-
 	SDL_memset(&want, 0, sizeof(want));
 	want.freq = 44100;
 	want.format = AUDIO_F32;
-	want.channels = 2;
-	want.samples = 1024;
-	want.callback = snd_callback;
+	want.channels = 1;
+	want.samples = 512;
+	want.callback = nullptr; //snd_callback;
 
 	dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
 	if (dev == 0) 
@@ -123,7 +124,8 @@ int main(int argc, char** args)
 		printf("Error: need float32 audio format.\n");
 	}
 	SDL_PauseAudioDevice(dev, 0);
-	
+	AudioDev = dev;
+
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);

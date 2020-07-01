@@ -29,7 +29,8 @@ void system_cycles(int c)
 {
 	total_cycles += c;
 	gfx_cycles(c);
-
+	snd_cycles(c);
+	
 	cycles_until_div += c;
 	if( cycles_until_div >= 256 )
 	{

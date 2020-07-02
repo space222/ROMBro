@@ -37,7 +37,7 @@ void length_clock()
 {
 	for(int i = 1; i < 5; ++i)
 	{
-		if( chan_enabled[i] && ( NR[0x10 * i + 4] & 0x40 ) )
+		if( chan_enabled[i] && ( NR[10*i + 4] & 0x40 ) )
 		{
 			chan_length[i]--;
 			if( chan_length[i] == 0 )

@@ -54,6 +54,8 @@ u8 JPAD = 0xc0;
 u8 WRAMBank = 0;
 u8 VRAMBank = 0;
 
+u8 gbc_speed = 0;
+
 void snd_write8(u16, u8);
 u8 snd_read8(u16);
 
@@ -134,6 +136,9 @@ u8 io_read8(u16 addr)
 	{
 		switch( addr )
 		{
+		case 0x4D:
+			printf("Program read gbc speed status.\n");
+			return gbc_speed<<7;
 		case 0x4F: return VRAMBank;
 		
 		case 0x51: return gbc_hdma_src>>8;
@@ -211,7 +216,7 @@ void io_write8(u16 addr, u8 val)
 		}
 		return;
 
-	case 0xFF: IE = val&0x1F; /*printf("IE set to %x\n", IE);*/ return;
+	case 0xFF: IE = val&0x1F; return;
 	default: break;
 	}
 	
@@ -219,6 +224,10 @@ void io_write8(u16 addr, u8 val)
 	{
 		switch( addr )
 		{
+		case 0x4D:
+			printf("Program attempted gbc speed switch.\n");	
+			if( val & 1 ) gbc_speed ^= 1;
+			return;
 		case 0x4F: 
 			val &= 1;
 			VRAMBank = 0xFE | val;

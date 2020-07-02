@@ -81,20 +81,27 @@ void system_cycles(int);
 void gb_interpret()
 {
 	u8 service = IE & IF;
-
-	if( IME && service ) for(int i = 0; i < 5; ++i)
-	{
-		int bit = (1 << i);
-		if( !(service & bit) ) continue;
 	
-		IF &= ~bit;
-		IME = false;
+	if( service )
+	{
 		if( Halted ) { Halted = false; PC++; }
-		push16(PC);
-		PC = 0x40|(i<<3);
-		break;
+		
+		if( IME ) 
+		{
+			for(int i = 0; i < 5; ++i)
+			{
+				int bit = (1 << i);
+				if( !(service & bit) ) continue;
+			
+				IF &= ~bit;
+				IME = false;
+				push16(PC);
+				PC = 0x40|(i<<3);
+				break;
+			}
+		}	
 	}
-
+	
 	//printf("PC = %x\n", PC);
 
 	u8 op = mem_read8(PC++);
@@ -120,7 +127,7 @@ void gb_interpret()
 	case 0x0D: F |= FLAG_N; F &= ~(FLAG_Z|FLAG_H); if( !(C & 0xF) ) F |= FLAG_H; C--; if( C == 0 ) F |= FLAG_Z; break;
 	case 0x0E: C = mem_read8(PC++); break; // LD C, n
 	case 0x0F: F = 0; if( A & 1 ) F |= FLAG_C; A = (A>>1)|(A<<7); break;
-	case 0x10: break; //TODO: stop
+	case 0x10: PC++; break; //TODO: stop
 	case 0x11: DE = imm16(); break;
 	case 0x12: mem_write8(DE, A); break;
 	case 0x13: DE++; break;
@@ -237,7 +244,7 @@ void gb_interpret()
 	case 0x73: mem_write8(HL, E); break;
 	case 0x74: mem_write8(HL, H); break;
 	case 0x75: mem_write8(HL, L); break;
-	case 0x76: Halted = true; PC--; /* printf("Program halted with STAT = %x, IE = %x\n", STAT, IE); */ break; //TODO: halt
+	case 0x76: Halted = true; PC--; /*printf("Program halted with STAT = %x, IE = %x\n", STAT, IE);*/ break; //TODO: halt
 	case 0x77: mem_write8(HL, A); break;
 	case 0x78: A = B; break;
 	case 0x79: A = C; break;

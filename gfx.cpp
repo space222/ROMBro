@@ -14,9 +14,9 @@ u8 mem_read8(u16);
 void mem_write8(u16, u8);
 
 u8 LCDC = 0;
-u8 STAT = 2;
+u8 STAT = 1;
 u8 LYC = 40;
-u8 LY = 3;
+u8 LY = 150;
 u8 BGP = 0;
 u8 OBP0 = 0;
 u8 OBP1 = 0;
@@ -55,7 +55,6 @@ void gfx_dot()
 		{
 			current_dot = 0;
 			LY++;
-			//if( LY == 154 ) LY = 0;
 			if( LY > 143 )
 			{
 				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on

@@ -37,7 +37,7 @@ void length_clock()
 {
 	for(int i = 1; i < 5; ++i)
 	{
-		if( chan_enabled[i] && chan_length[i] && (NR[4 + (i*0x10)]&0x40) )
+		if( chan_enabled[i] && ( NR[0x10 * i + 4] & 0x40 ) )
 		{
 			chan_length[i]--;
 			if( chan_length[i] == 0 )
@@ -48,9 +48,30 @@ void length_clock()
 	return;
 }
 
+u32 sweep_shadow = 0;
+u32 sweep_timer = 0;
+u32 sweep_on = 0;
+
 void sweep_clock()
 {
-
+	if( !sweep_on || !(NR[10]>>4) ) return;
+	
+	NR[10] = (NR[10]&~0x70) | (NR[10] - 0x10);
+	
+	u32 temp = sweep_shadow >> (NR[10] & 7);
+	if( NR[10] & 8 ) temp = -temp;
+	sweep_shadow += temp;
+	
+	if( sweep_shadow > 2047 )
+	{
+		chan_enabled[1] = 0;
+	} else {
+		NR[13] = sweep_shadow & 0xff;
+		NR[14] &= ~7;
+		NR[14] |= (sweep_shadow>>8)&7;
+		
+		timer_reload[1] = ((2048-sweep_shadow)*4);
+	}
 	return;
 }
 
@@ -148,50 +169,53 @@ void snd_cycle()
 		frame_clock();
 	}
 
-	timer[1]--;
-	if( timer[1] == 0 )
-	{
-		timer[1] = timer_reload[1];
-		duty_pos[1] = (duty_pos[1]+1) & 7;
-	}
-	
-	timer[2]--;
-	if( timer[2] == 0 )
-	{
-		timer[2] = timer_reload[2];
-		duty_pos[2] = (duty_pos[2]+1) & 7;
-	}
-	
-	timer[3]--;
-	if( timer[3] == 0 )
-	{
-		timer[3] = timer_reload[3];
-		duty_pos[3] = (duty_pos[3]+1) & 0xf;
-	}
-	
-	timer[4]--;
-	if( timer[4] == 0 )
-	{
-		timer[4] = timer_reload[4];
-		noise_run();
-	}
-	
 	if( chan_enabled[1] )
 	{
+		timer[1]--;
+		if( timer[1] == 0 )
+		{
+			timer[1] = timer_reload[1];
+			duty_pos[1] = (duty_pos[1]+1) & 7;
+		}
+		
 		chan_accum[1] += (duty[(NR[11]>>6)*8 + duty_pos[1]] & NR[12]);
 	}
+	
 	if( chan_enabled[2] )
 	{
+		timer[2]--;
+		if( timer[2] == 0 )
+		{
+			timer[2] = timer_reload[2];
+			duty_pos[2] = (duty_pos[2]+1) & 7;
+		}
+		
 		chan_accum[2] += (duty[(NR[21]>>6)*8 + duty_pos[2]] & NR[22]);
 	}
+	
 	if( chan_enabled[3] )
 	{
+		timer[3]--;
+		if( timer[3] == 0 )
+		{
+			timer[3] = timer_reload[3];
+			duty_pos[3] = (duty_pos[3]+1) & 0xf;
+		}
+		
 		u32 temp = (u32)(u8)WAVRAM[duty_pos[3]>>1];
 		if( duty_pos[3] & 1 ) temp <<= 4; else temp &= 0xF0;
 		chan_accum[3] += (temp & 0xF0);
 	}
+	
 	if( chan_enabled[4] )
 	{
+		timer[4]--;
+		if( timer[4] == 0 )
+		{
+			timer[4] = timer_reload[4];
+			noise_run();
+		}
+		
 		chan_accum[4] += (noise_lfsr & 1) ? 0 : (NR[42] & 0xF0);
 	}
 	
@@ -255,9 +279,18 @@ void chan1_trigger()
 {
 	chan_enabled[1] = 1;
 	if( chan_length[1] == 0 ) chan_length[1] = 64;
-	timer_reload[1] = ((NR[14]&7) << 8) | NR[13];
+	sweep_shadow = timer_reload[1] = ((NR[14]&7) << 8) | NR[13];
+	
 	timer[1] = timer_reload[1] = ((2048-timer_reload[1])*4);
 	chan_envelope[1] = (NR[12]&7) ? (NR[12]&7) : 8;
+	
+	if( NR[10] & 0x77 )
+	{
+		sweep_on = 1;
+	} else {
+		sweep_on = 0;
+	}
+	
 	return;
 }
 
@@ -283,12 +316,14 @@ void chan3_trigger()
 
 void chan4_trigger()
 {
+	if( !(NR[30] & 0x80) ) return;
+	
 	chan_enabled[4] = 1;
 	if( chan_length[4] == 0 ) chan_length[4] = 64;
 	chan_envelope[4] = (NR[42]&7) ? (NR[42]&7) : 8;
 	
 	timer_reload[4] = (NR[43]&7) ? (NR[43]&7)*16 : 8;
-	timer_reload[4] <<= (NR[43]>>4)+1;  // ??, I found a doc that the above is the actual number of 4MHz clocks to use as period,
+	timer_reload[4] <<= (NR[43]>>4); //+1?  // ??, I found a doc that the above is the actual number of 4MHz clocks to use as period,
 					 // but no actual idea what to do with the shift.
 	timer[4] = timer_reload[4];
 	noise_lfsr = 0x7FFF;

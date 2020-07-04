@@ -97,6 +97,7 @@ void gb_interpret()
 				IME = false;
 				push16(PC);
 				PC = 0x40|(i<<3);
+				//printf("Interrupt %i!\n", i);
 				break;
 			}
 		}	

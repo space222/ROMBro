@@ -2,19 +2,25 @@ ROMBro Todo List
 -------------------
 
 Since both original and color gameboy emulation is nearly done
-(minus sound and various accuracy improvements), tasks are no longer
+(minus various accuracy improvements), tasks are no longer
 numbered.
 
-- there's still problems that range from minor graphical glitches to games that don't run at all
-- Sound
+- there's still problems with attributes (and possibly bg tiles themselves) in some color games
+- Improve sound 
+	^- either length or envelope is buggy, sq1 sweep is likely wrong, 
+	 - and no idea what's going on with noise
 - controller/joystick input
+	^- started it, but haven't got around to finding a usb cable
 - Serial comms over internet?
-
+	^- probably not hard to hack something together, but low priority.
+	
 Bugs:
 
 - Figure out why super mario deluxe has "shifted" graphics on copyright screen, and wrong attributes for pipes.
-- Pokemon Trading Card game doesn't run at all
 - Pokemon Crystal misses the eye dot on the running creature on the title screen
 
 
+Solved bugs:
+
+- Pokemon Trading Card game depends on reading the color palette, or gets stuck writing to it.
 

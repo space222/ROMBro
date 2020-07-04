@@ -1,9 +1,10 @@
 # ROMBro
 ## A Gameboy (and GBC) Emulator
 
-Able to run a decent number of programs.
-Sound is the biggest missing piece (in progress) and there's a few
-pieces of software that either don't run or not perfectly.
+Able to run most software for either GB or GBC.
+At least one GBC game has wrong colors in places.
+Sound is coming along, but sweep, noise, and at least
+one of length or envelope is bugged.
 
 
 

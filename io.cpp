@@ -148,9 +148,9 @@ u8 io_read8(u16 addr)
 		case 0x55: return gbc_hdma_ctrl;
 		
 		case 0x68: return gbc_bgpal_index;
-		case 0x69: return gbc_bg_pal[gbc_bgpal_index&0x1f];
+		case 0x69: return gbc_bg_pal[gbc_bgpal_index&0x3f];
 		case 0x6A: return gbc_sprpal_index;
-		case 0x6B: return gbc_spr_pal[gbc_sprpal_index&0x1f];
+		case 0x6B: return gbc_spr_pal[gbc_sprpal_index&0x3f];
 		
 		case 0x70: return WRAMBank;
 		}
@@ -179,7 +179,7 @@ void io_write8(u16 addr, u8 val)
 		return;
 	}
 
-	printf("IO Write $%x = $%x\n", addr, val);
+	//printf("IO Write $%x = $%x\n", addr, val);
 
 	switch( addr )
 	{

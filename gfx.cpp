@@ -79,7 +79,7 @@ void gfx_dot()
 			LY++;
 			if( LY > 143 )
 			{
-				if( 1 && ( LCDC & 0x80 ) ) IF |= 1;  // vblank always happens if screen is on
+				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
 				if( STAT & 0x10 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
 				STAT = (STAT&~3) | 1;
 			} else {

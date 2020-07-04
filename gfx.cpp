@@ -45,8 +45,30 @@ int scanlineLYC = 0;
 int scanlineWX = 0;
 int scanlineWY = 0;
 
+int disabled_scanline = 0;
+
 void gfx_dot()
 {
+	if( ! (LCDC & 0x80) )
+	{
+		LY = 0;
+		STAT &= ~3;
+		current_dot++;
+		if( current_dot == 456 )
+		{
+			current_dot = 0;
+			disabled_scanline++;
+			if( disabled_scanline == 154 ) disabled_scanline = 0;
+		}
+		
+		if( disabled_scanline < 144 && current_dot < 160)
+		{
+			screen[disabled_scanline*160 + current_dot] = 0xffffff00;
+		}
+		return;
+	}
+
+
 	switch( STAT & 3 )
 	{
 	case 0: // HBLANK
@@ -57,7 +79,7 @@ void gfx_dot()
 			LY++;
 			if( LY > 143 )
 			{
-				if( LCDC & 0x80 ) IF |= 1;  // vblank always happens if screen is on
+				if( 1 && ( LCDC & 0x80 ) ) IF |= 1;  // vblank always happens if screen is on
 				if( STAT & 0x10 ) IF |= 2;  // STAT has it's own mode-based vblank interrupt
 				STAT = (STAT&~3) | 1;
 			} else {
@@ -68,6 +90,7 @@ void gfx_dot()
 				} else {
 					STAT &= ~4;
 				}
+				if( STAT & 0x20 ) IF |= 2;
 				STAT = (STAT&~3) | 2;
 			}
 		}
@@ -123,7 +146,7 @@ void gfx_dot()
 		{
 			if( current_dot >= end_mode_3 )
 			{
-				if( STAT & 0x20 ) IF |= 2;
+				if( STAT & 8 ) IF |= 2;
 
 				CurX = 0;
 				STAT = (STAT&~3) | 0;

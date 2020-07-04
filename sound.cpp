@@ -230,7 +230,7 @@ void snd_cycle()
 		if( left_write_pos == 1024 )
 		{
 			left_write_pos = 0;
-			if( SDL_QueueAudio(AudioDev, &left_buffer[0], 4096) )
+			if( SDL_QueueAudio(AudioDev, &left_buffer[0], 1024*4) )
 			{
 				printf("Audio error\n");
 				exit(1);

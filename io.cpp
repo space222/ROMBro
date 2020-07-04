@@ -172,12 +172,14 @@ void io_write8(u16 addr, u8 val)
 		hi_ram[addr&0x7f] = val;
 		return;
 	}
-
+	
 	if( addr >= 0x10 && addr < 0x40 )
 	{
 		snd_write8(addr, val);
 		return;
 	}
+
+	printf("IO Write $%x = $%x\n", addr, val);
 
 	switch( addr )
 	{

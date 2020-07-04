@@ -13,6 +13,7 @@ int c1_sweep = 0;
 int chan_enabled[5] = {0};
 u32 chan_length[5] = {0};
 u32 chan_envelope[5] = {0};
+int chan_len_enabled[5] = {0};
 
 u16 noise_lfsr = 0;
 
@@ -37,7 +38,7 @@ void length_clock()
 {
 	for(int i = 1; i < 5; ++i)
 	{
-		if( chan_enabled[i] && ( NR[10*i + 4] & 0x40 ) )
+		if( chan_enabled[i] && chan_len_enabled[i] )
 		{
 			chan_length[i]--;
 			if( chan_length[i] == 0 )
@@ -48,17 +49,21 @@ void length_clock()
 	return;
 }
 
-u32 sweep_shadow = 0;
+u16 sweep_shadow = 0;
 u32 sweep_timer = 0;
 u32 sweep_on = 0;
 
 void sweep_clock()
 {
-	if( !sweep_on || !(NR[10]>>4) ) return;
+	if( !sweep_on ) return;
 	
-	NR[10] = (NR[10]&~0x70) | (NR[10] - 0x10);
+	sweep_timer--;
+	if( sweep_timer ) return;
+	sweep_timer = (NR[10]>>4)&7;
 	
-	u32 temp = sweep_shadow >> (NR[10] & 7);
+	//NR[10] = (NR[10]&~0x70) | (NR[10] - 0x10);
+	
+	u32 temp = sweep_shadow >> ((NR[10] & 7)+1);
 	if( NR[10] & 8 ) temp = -temp;
 	sweep_shadow += temp;
 	
@@ -77,9 +82,10 @@ void sweep_clock()
 
 void envelope_clock()
 {
-	if( chan_envelope[1] )
+	chan_envelope[1]--;
+	if( !chan_envelope[1] )
 	{
-		chan_envelope[1]--;
+		chan_envelope[1] = (NR[12]&7) ? (NR[12]&7) : 8;
 		u8 vol = NR[12]>>4;
 		if( NR[12] & 8 )
 		{
@@ -90,9 +96,10 @@ void envelope_clock()
 		NR[12] &= 0xF; NR[12] |= vol<<4;
 	}
 	
-	if( chan_envelope[2] )
+	chan_envelope[2]--;
+	if( !chan_envelope[2] )
 	{
-		chan_envelope[2]--;
+		chan_envelope[2] = (NR[22]&7) ? (NR[22]&7) : 8;
 		u8 vol = NR[22]>>4;
 		if( NR[22] & 8 )
 		{
@@ -103,9 +110,10 @@ void envelope_clock()
 		NR[22] &= 0xF; NR[22] |= vol<<4;
 	}
 	
-	if( chan_envelope[4] )
+	chan_envelope[4]--;
+	if( !chan_envelope[4] )
 	{
-		chan_envelope[4]--;
+		chan_envelope[4] = (NR[42]&7) ? (NR[42]&7) : 8;
 		u8 vol = NR[42]>>4;
 		if( NR[42] & 8 )
 		{
@@ -199,7 +207,7 @@ void snd_cycle()
 		if( timer[3] == 0 )
 		{
 			timer[3] = timer_reload[3];
-			duty_pos[3] = (duty_pos[3]+1) & 0xf;
+			duty_pos[3] = (duty_pos[3]+1) & 0x1f;
 		}
 		
 		u32 temp = (u32)(u8)WAVRAM[duty_pos[3]>>1];
@@ -249,7 +257,7 @@ void snd_cycles(int c)
 }
 
 void snd_callback(void*, u8* stream, int len)
-{
+{ //currently unused
 	int floatlen = len / 4 ;
 	float* flstr =(float*) stream;
 	//for(int i = 0; i < len; ++i) stream[i] = 0;
@@ -278,8 +286,11 @@ void noise_run()
 void chan1_trigger()
 {
 	chan_enabled[1] = 1;
-	if( chan_length[1] == 0 ) chan_length[1] = 64;
+	chan_len_enabled[1] = NR[14] & 0x40;
+	
+	chan_length[1] = 64-(NR[11]&0x3f); 
 	sweep_shadow = timer_reload[1] = ((NR[14]&7) << 8) | NR[13];
+	sweep_timer = (NR[10]>>4)&7;
 	
 	timer[1] = timer_reload[1] = ((2048-timer_reload[1])*4);
 	chan_envelope[1] = (NR[12]&7) ? (NR[12]&7) : 8;
@@ -296,8 +307,10 @@ void chan1_trigger()
 
 void chan2_trigger()
 {
-	chan_enabled[2] = 1;	
-	if( chan_length[2] == 0 ) chan_length[2] = 64;
+	chan_enabled[2] = 1;
+	chan_len_enabled[2] = NR[24] & 0x40;
+	
+	chan_length[2] = 64-(NR[21]&0x3f); 
 	timer_reload[2] = ((NR[24]&7) << 8) | NR[23];
 	timer[2] = timer_reload[2] = ((2048-timer_reload[2])*4);
 	chan_envelope[2] = (NR[22]&7) ? (NR[22]&7) : 8;
@@ -306,8 +319,12 @@ void chan2_trigger()
 
 void chan3_trigger()
 {
+	if( !(NR[30] & 0x80) ) return;
+
 	chan_enabled[3] = 1;
-	if( chan_length[3] == 0 ) chan_length[3] = 256;
+	chan_len_enabled[3] = NR[34] & 0x40;
+	
+	chan_length[3] = 256-(NR[31]&0x3f); 
 	duty_pos[3] = 0;
 	timer_reload[3] = ((NR[34]&7) << 8) | NR[33];
 	timer[3] = timer_reload[3] = ((2048-timer_reload[3])*2);
@@ -316,15 +333,17 @@ void chan3_trigger()
 
 void chan4_trigger()
 {
-	if( !(NR[30] & 0x80) ) return;
-	
+	chan_len_enabled[4] = NR[44] & 0x40;
+
+	chan_length[4] = 64-(NR[41]&0x3f); 
 	chan_enabled[4] = 1;
-	if( chan_length[4] == 0 ) chan_length[4] = 64;
 	chan_envelope[4] = (NR[42]&7) ? (NR[42]&7) : 8;
 	
 	timer_reload[4] = (NR[43]&7) ? (NR[43]&7)*16 : 8;
-	timer_reload[4] <<= (NR[43]>>4); //+1?  // ??, I found a doc that the above is the actual number of 4MHz clocks to use as period,
+	timer_reload[4] <<= (NR[43]>>4)+1; //?  // ??, I found a doc that the above is the actual number of 4MHz clocks to use as period,
 					 // but no actual idea what to do with the shift.
+					 
+	timer_reload[4] = (2048-timer_reload[4])*2;
 	timer[4] = timer_reload[4];
 	noise_lfsr = 0x7FFF;
 	return;
@@ -355,23 +374,23 @@ void snd_write8(u16 addr, u8 val)
 	switch( addr )
 	{
 	case 0x10: NR[10] = val; break;
-	case 0x11: NR[11] = val; chan_length[1] = 64-(val&0x3f); break;
+	case 0x11: NR[11] = val; break;
 	case 0x12: NR[12] = val; break;
 	case 0x13: NR[13] = val; break;
 	case 0x14: NR[14] = val; if( val & 0x80 ) chan1_trigger(); break;
 	
-	case 0x16: NR[21] = val; chan_length[2] = 64-(val&0x3f); break;
+	case 0x16: NR[21] = val; break;
 	case 0x17: NR[22] = val; break;
 	case 0x18: NR[23] = val; break;
 	case 0x19: NR[24] = val; if( val & 0x80 ) chan2_trigger(); break;
 	
-	case 0x1A: NR[30] = val; break;
-	case 0x1B: NR[31] = val; chan_length[3] = 256-val; break;
+	case 0x1A: NR[30] = val; chan_enabled[3] = val>>7; break;
+	case 0x1B: NR[31] = val; break;
 	case 0x1C: NR[32] = val; break;
 	case 0x1D: NR[33] = val; break;
 	case 0x1E: NR[34] = val; if( val & 0x80 ) chan3_trigger(); break;
 	
-	case 0x20: NR[41] = val; chan_length[4] = 64-(val&0x3f); break;
+	case 0x20: NR[41] = val; break;
 	case 0x21: NR[42] = val; break;
 	case 0x22: NR[43] = val; break;
 	case 0x23: NR[44] = val; if( val & 0x80 ) chan4_trigger(); break;

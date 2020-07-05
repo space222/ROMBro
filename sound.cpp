@@ -59,11 +59,11 @@ void sweep_clock()
 	
 	sweep_timer--;
 	if( sweep_timer ) return;
-	sweep_timer = (NR[10]>>4)&7;
+	sweep_timer = ((NR[10]>>4)&7);
 	
 	//NR[10] = (NR[10]&~0x70) | (NR[10] - 0x10);
 	
-	u32 temp = sweep_shadow >> ((NR[10] & 7)+1);
+	s16 temp = sweep_shadow >> ((NR[10] & 7)+1);
 	if( NR[10] & 8 ) temp = -temp;
 	sweep_shadow += temp;
 	
@@ -343,7 +343,7 @@ void chan4_trigger()
 	timer_reload[4] <<= (NR[43]>>4)+1; //?  // ??, I found a doc that the above is the actual number of 4MHz clocks to use as period,
 					 // but no actual idea what to do with the shift.
 					 
-	timer_reload[4] = (2048-timer_reload[4])*2;
+	//timer_reload[4] = (2048-timer_reload[4])*2;
 	timer[4] = timer_reload[4];
 	noise_lfsr = 0x7FFF;
 	return;
